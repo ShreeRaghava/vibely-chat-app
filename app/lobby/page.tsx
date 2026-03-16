@@ -83,7 +83,6 @@ export default function Lobby() {
               value={genderFilter}
               onChange={(e) => setGenderFilter(e.target.value)}
               className="w-full p-2 border rounded-lg"
-              disabled={!isPremium}
             >
               <option value="">Any</option>
               <option value="male">Male</option>
@@ -93,14 +92,12 @@ export default function Lobby() {
           
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">Location Filter {!isPremium && '(Premium)'}</label>
-            <input
-              type="text"
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              placeholder="Enter location"
-              className="w-full p-2 border rounded-lg"
-              disabled={!isPremium}
-            />
+            <button
+              onClick={() => router.push('/premium')}
+              className="w-full p-2 border rounded-lg bg-nude-cream hover:bg-nude-beige transition-colors"
+            >
+              Select Location (Premium)
+            </button>
           </div>
           
           <motion.button
