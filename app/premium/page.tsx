@@ -39,7 +39,7 @@ export default function Premium() {
 
   const handlePayment = async (planType: string, amount: number) => {
     if (status !== 'authenticated') {
-      router.push('/login?message=Please login to subscribe to premium');
+      window.location.href = '/login?message=Please login to subscribe to premium';
       return;
     }
 
@@ -152,7 +152,7 @@ export default function Premium() {
               You need to be logged in to subscribe to premium features.
             </p>
             <button
-              onClick={() => router.push('/login')}
+              onClick={() => window.location.href = '/login'}
               className="w-full bg-black text-nude-beige py-3 px-4 rounded-lg font-semibold"
             >
               Go to Login
