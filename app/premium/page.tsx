@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 declare global {
   interface Window {
@@ -15,6 +16,7 @@ export default function Premium() {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [autoRenew, setAutoRenew] = useState(false);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     // Load Razorpay script
@@ -29,7 +31,18 @@ export default function Premium() {
     };
   }, []);
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login?message=Please login to subscribe to premium');
+    }
+  }, [status, router]);
+
   const handlePayment = async (planType: string, amount: number) => {
+    if (status !== 'authenticated') {
+      router.push('/login?message=Please login to subscribe to premium');
+      return;
+    }
+
     if (!razorpayLoaded) {
       alert('Payment system is loading. Please try again.');
       return;
@@ -113,6 +126,42 @@ export default function Premium() {
       setLoading(null);
     }
   };
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-nude-beige flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-nude-beige flex items-center justify-center px-4">
+        <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full"
+          >
+            <h1 className="text-2xl font-bold mb-4">Login Required</h1>
+            <p className="text-dark-grey mb-6">
+              You need to be logged in to subscribe to premium features.
+            </p>
+            <button
+              onClick={() => router.push('/login')}
+              className="w-full bg-black text-nude-beige py-3 px-4 rounded-lg font-semibold"
+            >
+              Go to Login
+            </button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-nude-beige p-4">
