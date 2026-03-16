@@ -50,11 +50,18 @@ export const authOptions = {
   callbacks: {
     async session({ session, user }: { session: any; user: any }) {
       if (user && session.user) {
-        await connectDB();
-        const dbUser = await User.findById(user.id);
-        (session.user as any).id = user.id;
-        (session.user as any).isPremium = dbUser?.isPremium || false;
-        (session.user as any).premiumExpiry = dbUser?.premiumExpiry;
+        try {
+          await connectDB();
+          const dbUser = await User.findById(user.id);
+          (session.user as any).id = user.id;
+          (session.user as any).isPremium = dbUser?.isPremium || false;
+          (session.user as any).premiumExpiry = dbUser?.premiumExpiry;
+        } catch (error) {
+          console.error('Session callback DB error:', error);
+          // Still set the id even if DB fails
+          (session.user as any).id = user.id;
+          (session.user as any).isPremium = false;
+        }
       }
       return session;
     },
