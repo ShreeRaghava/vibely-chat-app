@@ -11,12 +11,16 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Create order API called');
     const session = await auth();
+    console.log('Session:', session);
     if (!session?.user?.id) {
+      console.log('No session user id');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { planType, amount, autoRenew } = await request.json();
+    console.log('Request data:', { planType, amount, autoRenew });
 
     if (!planType || !amount) {
       return NextResponse.json({ error: 'Plan type and amount are required' }, { status: 400 });
@@ -34,7 +38,9 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    console.log('Creating Razorpay order with options:', options);
     const order = await razorpay.orders.create(options);
+    console.log('Order created:', order);
 
     return NextResponse.json({
       orderId: order.id,
@@ -44,6 +50,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Payment creation error:', error);
-    return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 });
+    return NextResponse.json({ error: `Failed to create payment: ${error.message}` }, { status: 500 });
   }
 }
