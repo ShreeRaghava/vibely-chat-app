@@ -73,12 +73,17 @@ export default function Matching() {
   };
 
   const handleCancel = async () => {
-    if (!roomId) return;
-    await fetch('/api/match/cancel', {
+    if (!roomId) {
+      router.push('/lobby');
+      return;
+    }
+    // Cancel in background
+    fetch('/api/match/cancel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomId }),
-    });
+    }).catch(console.error);
+    
     setSearching(false);
     router.push('/lobby');
   };
