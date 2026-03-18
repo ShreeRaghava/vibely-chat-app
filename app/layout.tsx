@@ -10,8 +10,8 @@ const courierMono = Courier_Prime({
 });
 
 export const metadata: Metadata = {
-  title: "Vibely",
-  description: "A stranger chat web application for connecting with random people.",
+  title: "Meet-New-Make-New",
+  description: "A stranger chat app for meeting new people, making friends, and connecting instantly.",
 };
 
 export default function RootLayout({

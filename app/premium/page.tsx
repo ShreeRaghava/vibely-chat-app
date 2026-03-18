@@ -15,6 +15,7 @@ export default function Premium() {
   const [loading, setLoading] = useState<string | null>(null);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [autoRenew, setAutoRenew] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -62,7 +63,10 @@ export default function Premium() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create payment order');
+        const message = error?.error || 'Failed to create payment order';
+        setError(message);
+        setLoading(null);
+        return;
       }
 
       const orderData = await response.json();
@@ -73,7 +77,7 @@ export default function Premium() {
         amount: orderData.amount,
         currency: orderData.currency,
         order_id: orderData.orderId,
-        name: 'Vibely Premium',
+        name: 'Meet-New-Make-New Premium',
         description: `${planType.charAt(0).toUpperCase() + planType.slice(1)} Plan Subscription`,
         handler: async function (response: any) {
           try {
@@ -99,7 +103,7 @@ export default function Premium() {
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            router.push('/payment/failure');
+            setError('Payment verification failed. Please try again.');
           }
         },
         prefill: {
@@ -121,9 +125,7 @@ export default function Premium() {
       rzp.open();
     } catch (error) {
       console.error('Payment error:', error);
-      router.push('/payment/failure');
-    } finally {
-      setLoading(null);
+          setError('Unable to start payment. Please try again or contact support.');
     }
   };
 
@@ -186,31 +188,15 @@ export default function Premium() {
             Auto-renew monthly subscription
           </label>
         </div>
-      </motion.div>
+
+          {error && (
+            <div className="mt-4 text-sm text-red-600 text-center">
+              {error}
+            </div>
+          )}
+        </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-white p-6 rounded-lg shadow-lg"
-          >
-            <h2 className="text-2xl font-bold mb-4">Location Filter</h2>
-            <p className="text-3xl font-bold mb-4">₹110<span className="text-lg">/month</span></p>
-            <ul className="mb-6 space-y-2">
-              <li>✓ Location-based matching</li>
-              <li>✓ Priority in search results</li>
-              <li>✓ Basic chat features</li>
-            </ul>
-            <motion.button
-              whileHover={{ y: -2, boxShadow: "0 5px 15px rgba(0,0,0,0.2)" }}
-              whileTap={{ y: 0 }}
-              onClick={() => handlePayment('location', 110)}
-              disabled={loading === 'location' || !razorpayLoaded}
-              className="w-full bg-black text-nude-beige py-3 px-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === 'location' ? 'Processing...' : 'Subscribe'}
-            </motion.button>
-          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, x: 50 }}

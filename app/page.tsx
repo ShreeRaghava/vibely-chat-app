@@ -13,7 +13,7 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="text-4xl md:text-6xl font-bold mb-4"
         >
-          Welcome to Vibely
+          Meet-New-Make-New
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 50 }}
@@ -21,7 +21,7 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-lg md:text-xl mb-8 max-w-2xl"
         >
-          Connect with strangers from around the world. Chat, share, and make new friends in a safe and anonymous environment.
+          Meet people instantly, start conversations, and build friendships in a safe and anonymous environment.
         </motion.p>
         <motion.div
           initial={{ opacity: 0 }}

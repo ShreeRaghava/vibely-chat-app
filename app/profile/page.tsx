@@ -44,9 +44,14 @@ export default function Profile() {
               <p className="text-dark-grey">{session.user.email}</p>
             </div>
           </div>
-          <a href="/profile/edit" className="mt-4 inline-block bg-black text-nude-beige px-4 py-2 rounded-lg">
-            Edit Profile
-          </a>
+          <div className="mt-4 flex flex-col sm:flex-row gap-3">
+            <a href="/profile/edit" className="flex-1 text-center bg-black text-nude-beige px-4 py-2 rounded-lg">
+              Edit Profile
+            </a>
+            <a href="/friends" className="flex-1 text-center bg-dark-grey text-nude-beige px-4 py-2 rounded-lg">
+              Friends List
+            </a>
+          </div>
         </motion.div>
 
         <motion.div

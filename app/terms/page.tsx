@@ -8,7 +8,7 @@ export default function Terms() {
           <p>2. No harassment or abusive behavior.</p>
           <p>3. Report inappropriate content immediately.</p>
           <p>4. Users found violating these terms may be banned.</p>
-          <p>5. Vibely reserves the right to moderate chats.</p>
+          <p>5. Meet-New-Make-New reserves the right to moderate chats.</p>
         </div>
       </div>
     </div>

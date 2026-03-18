@@ -13,6 +13,7 @@ const UserSchema = new mongoose.Schema({
   razorpayPaymentId: { type: String },
   chatsCount: { type: Number, default: 0 },
   reportsReceived: { type: Number, default: 0 },
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   banned: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 });

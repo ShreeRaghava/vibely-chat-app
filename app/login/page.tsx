@@ -40,7 +40,7 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full"
       >
-        <h1 className="text-2xl font-bold text-center mb-6">Login to Vibely</h1>
+        <h1 className="text-2xl font-bold text-center mb-6">Login to Meet-New-Make-New</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
