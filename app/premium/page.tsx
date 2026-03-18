@@ -197,6 +197,28 @@ export default function Premium() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white p-6 rounded-lg shadow-lg"
+          >
+            <h2 className="text-2xl font-bold mb-4">Location Filter</h2>
+            <p className="text-3xl font-bold mb-4">₹110<span className="text-lg">/month</span></p>
+            <ul className="mb-6 space-y-2">
+              <li>✓ Location-based matching</li>
+              <li>✓ Priority in search results</li>
+              <li>✓ Basic chat features</li>
+            </ul>
+            <motion.button
+              whileHover={{ y: -2, boxShadow: "0 5px 15px rgba(0,0,0,0.2)" }}
+              whileTap={{ y: 0 }}
+              onClick={() => handlePayment('location', 110)}
+              disabled={loading === 'location' || !razorpayLoaded}
+              className="w-full bg-black text-nude-beige py-3 px-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading === 'location' ? 'Processing...' : 'Subscribe'}
+            </motion.button>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, x: 50 }}
