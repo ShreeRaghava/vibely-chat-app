@@ -4,10 +4,19 @@ import { auth } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import User from '@/lib/models/User';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+function getRazorpayInstance() {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay keys not configured');
+  }
+
+  return new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +48,7 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('Creating Razorpay order with options:', options);
+    const razorpay = getRazorpayInstance();
     const order = await razorpay.orders.create(options);
     console.log('Order created:', order);
 
@@ -50,6 +60,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Payment creation error:', error);
-    return NextResponse.json({ error: `Failed to create payment: ${error.message}` }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: `Failed to create payment: ${errorMessage}` }, { status: 500 });
   }
 }
