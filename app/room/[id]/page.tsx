@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import Peer from 'peerjs';
@@ -65,15 +65,7 @@ export default function ChatRoom() {
     };
   }, [id]);
 
-  useEffect(() => {
-    if (isVideo) {
-      initializeVideoCall();
-    } else {
-      stopVideoCall();
-    }
-  }, [isVideo]);
-
-  const initializeVideoCall = async () => {
+  const initializeVideoCall = useCallback(async () => {
     try {
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -124,11 +116,11 @@ export default function ChatRoom() {
     } catch (error) {
       console.error('Error initializing video call:', error);
     }
-  };
+  }, [videoOff, muted]);
 
-  const stopVideoCall = () => {
+  const stopVideoCall = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     if (peerRef.current) {
@@ -136,21 +128,30 @@ export default function ChatRoom() {
       peerRef.current = null;
     }
     setPeerConnected(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    const controlVideo = async () => {
+      if (isVideo) {
+        await initializeVideoCall();
+      } else {
+        stopVideoCall();
+      }
+    };
+
+    controlVideo();
+  }, [isVideo, initializeVideoCall, stopVideoCall]);
 
   const sendMessage = () => {
     if (newMessage.trim() && socketRef.current) {
-      const messageData = {
-        message: newMessage,
-        senderId: 'me',
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, {
-        text: newMessage,
-        sender: 'me',
-        timestamp: new Date()
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: newMessage,
+          sender: 'me',
+          timestamp: new Date(),
+        },
+      ]);
 
       socketRef.current.emit('send-message', newMessage);
       setNewMessage('');

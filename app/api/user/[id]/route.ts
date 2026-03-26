@@ -18,6 +18,7 @@ export async function GET(
       isPremium: user.isPremium,
     });
   } catch (error) {
+    console.error('User info fetch error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-# 🚀 VIBELY - Complete Deployment Instructions
+# 🚀 Meet-New-Make-New - Complete Deployment Instructions
 
 ## ✅ Current Status - EVERYTHING WORKING
 
@@ -16,11 +16,11 @@
 ### **STEP 1: Login to Vercel**
 
 1. Go to https://vercel.com
-2. Login with your account (the one connected to vibely-website)
+2. Login with your account (the one connected to meet-new-make-new)
 
 ### **STEP 2: Open Your Project**
 
-1. In the dashboard, click on **vibely-website**
+1. In the dashboard, click on **meet-new-make-new**
 2. You should see your project details page
 
 ### **STEP 3: Add Environment Variables**
@@ -38,7 +38,7 @@ Variable 1:
 
 Variable 2:
 - Name: `NEXTAUTH_URL`
-- Value: `https://vibely-website-pg1r1e1m2-shreeraghavas-projects.vercel.app`
+- Value: `https://meet-new-make-new-pg1r1e1m2-shreeraghavas-projects.vercel.app`
 - Click Add
 
 Variable 3:
@@ -77,7 +77,7 @@ Variable 7:
 
 Once the deployment completes (shows "Ready"), your website is live at:
 
-**https://vibely-website-pg1r1e1m2-shreeraghavas-projects.vercel.app**
+**https://meet-new-make-new-pg1r1e1m2-shreeraghavas-projects.vercel.app**
 
 ---
 

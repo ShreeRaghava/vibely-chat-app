@@ -1,4 +1,4 @@
-# 🚀 FINAL DEPLOYMENT GUIDE - VIBELY WEBSITE
+# 🚀 FINAL DEPLOYMENT GUIDE - Meet-New-Make-New WEBSITE
 
 ## ✅ STATUS: EVERYTHING IS WORKING!
 
@@ -17,14 +17,14 @@
 
 ### **STEP 1: Add Environment Variables to Vercel**
 
-Go to: https://vercel.com/dashboard → Your "vibely-website" project → Settings → Environment Variables
+Go to: https://vercel.com/dashboard → Your "meet-new-make-new" project → Settings → Environment Variables
 
 **Add these 7 variables:**
 
 | Variable | Value |
 |----------|-------|
 | `NEXTAUTH_SECRET` | `c610eb46-550c-47ec-9009-4b84346f4763` |
-| `NEXTAUTH_URL` | `https://vibely-website-pg1r1e1m2-shreeraghavas-projects.vercel.app` |
+| `NEXTAUTH_URL` | `https://meet-new-make-new-pg1r1e1m2-shreeraghavas-projects.vercel.app` |
 | `MONGODB_URI` | `mongodb+srv://lokeshveeraraghavalu_db_user:uDHhPemRlhuBYCRw@cluster0.zfqozm9.mongodb.net/?appName=Cluster0` |
 | `GOOGLE_CLIENT_ID` | `dummy-client-id` |
 | `GOOGLE_CLIENT_SECRET` | `dummy-client-secret` |
@@ -40,7 +40,7 @@ Go to: https://vercel.com/dashboard → Your "vibely-website" project → Settin
 
 ### **STEP 3: Your Website is LIVE! 🎉**
 
-**URL:** https://vibely-website-pg1r1e1m2-shreeraghavas-projects.vercel.app
+**URL:** https://meet-new-make-new-pg1r1e1m2-shreeraghavas-projects.vercel.app
 
 ---
 
@@ -164,4 +164,4 @@ npm install socket.io express
 **🎉 CONGRATULATIONS! Your social chat website is now LIVE and FULLY FUNCTIONAL!**
 
 **Share this URL with people:**  
-**https://vibely-website-pg1r1e1m2-shreeraghavas-projects.vercel.app**
+**https://meet-new-make-new-pg1r1e1m2-shreeraghavas-projects.vercel.app**

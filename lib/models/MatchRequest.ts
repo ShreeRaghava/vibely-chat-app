@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const MatchRequestSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   roomId: { type: String, required: true, unique: true },
+  chatType: { type: String, default: 'text' },
   gender: { type: String, default: '' },
   location: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },

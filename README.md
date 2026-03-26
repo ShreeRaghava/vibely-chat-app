@@ -1,4 +1,4 @@
-# Vibely
+# Meet-New-Make-New
 
 A stranger chat web application built with Next.js, TypeScript, and Tailwind CSS. Connect with random people worldwide through anonymous text and video chats.
 

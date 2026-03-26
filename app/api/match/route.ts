@@ -14,11 +14,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { chatType, gender, location } = await request.json();
+    const body = await request.json();
+    const chatType = (body.chatType || 'text').toString().trim().toLowerCase();
+    const location = (body.location || '').toString().trim().toLowerCase();
+    const gender = (body.gender || '').toString().trim().toLowerCase();
 
     // Normalize and sanitize
-    const normalizedLocation = (location || '').toString().trim().toLowerCase();
-    const normalizedGender = (gender || '').toString().trim().toLowerCase();
+    const normalizedLocation = location;
+    const normalizedGender = gender;
 
     // If a user already has a pending request, return the same roomId
     const existingRequest = await MatchRequest.findOne({ user: session.user.id });
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     // If user is not premium, ignore premium filters
-    const user = session.user as any;
+    const user = session.user as { id: string; isPremium?: boolean };
     const isPremium = user.isPremium;
     const allowedLocation = isPremium ? normalizedLocation : '';
     const allowedGender = isPremium ? normalizedGender : '';
@@ -37,6 +40,7 @@ export async function POST(request: Request) {
       location: allowedLocation,
       gender: allowedGender,
       user: { $ne: session.user.id },
+      chatType: chatType,
     });
 
     if (matchingRequest) {
@@ -62,6 +66,7 @@ export async function POST(request: Request) {
     await MatchRequest.create({
       user: session.user.id,
       roomId,
+      chatType,
       location: allowedLocation,
       gender: allowedGender,
     });

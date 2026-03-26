@@ -48,19 +48,30 @@ export const authOptions = {
     signIn: '/login',
   },
   callbacks: {
-    async session({ session, user }: { session: any; user: any }) {
+    async session({ session, user }: { session: Session; user: { id?: string } }) {
       if (user && session.user) {
         try {
           await connectDB();
           const dbUser = await User.findById(user.id);
-          (session.user as any).id = user.id;
-          (session.user as any).isPremium = dbUser?.isPremium || false;
-          (session.user as any).premiumExpiry = dbUser?.premiumExpiry;
+          const currentUser = session.user as unknown as {
+            id?: string;
+            isPremium?: boolean;
+            premiumExpiry?: Date;
+          };
+
+          currentUser.id = user.id;
+          currentUser.isPremium = dbUser?.isPremium || false;
+          currentUser.premiumExpiry = dbUser?.premiumExpiry;
         } catch (error) {
           console.error('Session callback DB error:', error);
           // Still set the id even if DB fails
-          (session.user as any).id = user.id;
-          (session.user as any).isPremium = false;
+          const currentUser = session.user as unknown as {
+            id?: string;
+            isPremium?: boolean;
+            premiumExpiry?: Date;
+          };
+          currentUser.id = user.id;
+          currentUser.isPremium = false;
         }
       }
       return session;

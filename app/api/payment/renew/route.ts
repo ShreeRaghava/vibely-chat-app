@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { auth } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
@@ -23,7 +23,7 @@ const planPricing: Record<string, number> = {
   premium: 220,
 };
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id) {

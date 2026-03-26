@@ -4,8 +4,16 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+type PaymentStatus = {
+  isPremium?: boolean;
+  plan?: string;
+  expiry?: string;
+  isExpired?: boolean;
+  autoRenew?: boolean;
+};
+
 export default function PaymentSuccess() {
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<PaymentStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -15,6 +23,44 @@ export default function PaymentSuccess() {
 
   const checkPaymentStatus = async () => {
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const payuTxnid = urlParams.get('txnid');
+      const payuStatus = urlParams.get('status');
+      const payuMihpayid = urlParams.get('mihpayid');
+      const payuHash = urlParams.get('hash');
+      const paytmOrderId = urlParams.get('ORDERID');
+      const paytmStatus = urlParams.get('STATUS');
+      const paytmChecksum = urlParams.get('CHECKSUMHASH');
+
+      if (paytmOrderId && paytmStatus && paytmChecksum) {
+        await fetch('/api/payment/paytm-verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...Object.fromEntries(urlParams.entries()),
+          }),
+        });
+      }
+
+      if (payuTxnid && payuStatus && payuHash) {
+        await fetch('/api/payment/payu-verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mihpayid: payuMihpayid,
+            status: payuStatus,
+            txnid: payuTxnid,
+            amount: urlParams.get('amount'),
+            productinfo: urlParams.get('productinfo'),
+            firstname: urlParams.get('firstname'),
+            email: urlParams.get('email'),
+            hash: payuHash,
+            planType: urlParams.get('udf1') || 'premium',
+            autoRenew: urlParams.get('udf2') === 'true',
+          }),
+        });
+      }
+
       const response = await fetch('/api/payment/status');
       if (response.ok) {
         const data = await response.json();
@@ -69,7 +115,7 @@ export default function PaymentSuccess() {
         ) : (
           <div className="mb-6">
             <p className="text-dark-grey mb-2">Your premium status is being activated...</p>
-            <p className="text-sm">Please refresh if you don't see your premium status.</p>
+            <p className="text-sm">Please refresh if you don&apos;t see your premium status.</p>
           </div>
         )}
 

@@ -14,10 +14,12 @@ export default function Profile() {
   const [stats, setStats] = useState<UserStats | null>(null);
 
   useEffect(() => {
-    if (session?.user && (session.user as any).id) {
-      fetch(`/api/user/${(session.user as any).id}`)
-        .then(res => res.json())
-        .then(setStats);
+    const userId = session?.user && (session.user as { id?: string }).id;
+    if (userId) {
+      fetch(`/api/user/${userId}`)
+        .then((res) => res.json())
+        .then(setStats)
+        .catch((error) => console.error('Failed to fetch user stats:', error));
     }
   }, [session]);
 

@@ -21,21 +21,33 @@ export default function Admin() {
   const [users, setUsers] = useState<User[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
 
-  const fetchUsers = async () => {
-    const res = await fetch('/api/admin/users');
-    const data = await res.json();
-    setUsers(data);
-  };
+  const loadAdminData = async () => {
+    try {
+      const usersRes = await fetch('/api/admin/users');
+      const usersData = await usersRes.json();
+      setUsers(usersData);
 
-  const fetchReports = async () => {
-    const res = await fetch('/api/admin/reports');
-    const data = await res.json();
-    setReports(data);
+      const reportsRes = await fetch('/api/admin/reports');
+      const reportsData = await reportsRes.json();
+      setReports(reportsData);
+    } catch (err) {
+      console.error('Failed to load admin data:', err);
+    }
   };
 
   useEffect(() => {
-    fetchUsers();
-    fetchReports();
+    let active = true;
+
+    const load = async () => {
+      if (!active) return;
+      await loadAdminData();
+    };
+
+    load();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const banUser = async (userId: string) => {
@@ -44,7 +56,7 @@ export default function Admin() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
     });
-    fetchUsers();
+    await loadAdminData();
   };
 
   return (

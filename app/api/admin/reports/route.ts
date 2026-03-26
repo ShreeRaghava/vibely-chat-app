@@ -8,6 +8,7 @@ export async function GET() {
     const reports = await Report.find().populate('reporter reportedUser', 'name');
     return NextResponse.json(reports);
   } catch (error) {
+    console.error('Admin reports fetch error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

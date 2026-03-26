@@ -12,7 +12,7 @@ interface Friend {
 }
 
 export default function FriendsPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [email, setEmail] = useState('');
@@ -108,7 +108,7 @@ export default function FriendsPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Friend's email"
+              placeholder="Friend&apos;s email"
               className="flex-1 p-3 border rounded-lg"
             />
             <button
@@ -133,7 +133,7 @@ export default function FriendsPage() {
           {loading ? (
             <div className="text-center">Loading...</div>
           ) : friends.length === 0 ? (
-            <div className="text-dark-grey">You haven't added any friends yet.</div>
+            <div className="text-dark-grey">You haven&apos;t added any friends yet.</div>
           ) : (
             <ul className="space-y-3">
               {friends.map((friend) => (

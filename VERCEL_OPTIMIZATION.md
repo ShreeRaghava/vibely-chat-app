@@ -1,18 +1,18 @@
-# ⚙️ VERCEL CONFIGURATION GUIDE FOR VIBELY
+# ⚙️ VERCEL CONFIGURATION GUIDE FOR Meet-New-Make-New
 
 ## 🎯 Important Vercel Settings for Real-Time Chat App
 
 ### **1. Skew Protection**
 **What it does:** Prevents deployment conflicts when multiple deployments are running
-**For Vibely:** ✅ **ENABLE** - Important for chat app stability
+**For Meet-New-Make-New:** ✅ **ENABLE** - Important for chat app stability
 
 ### **2. Cold Start Prevention**
 **What it does:** Keeps serverless functions warm to reduce response times
-**For Vibely:** ✅ **ENABLE** - Critical for real-time chat performance
+**For Meet-New-Make-New:** ✅ **ENABLE** - Critical for real-time chat performance
 
 ### **3. Function Regions**
 **What it does:** Choose server location closest to your users
-**For Vibely:** Set to `fra1` (Frankfurt) or your preferred region
+**For Meet-New-Make-New:** Set to `fra1` (Frankfurt) or your preferred region
 
 ---
 
@@ -39,7 +39,7 @@
 
 ---
 
-## 📊 Why These Settings Matter for Vibely
+## 📊 Why These Settings Matter for Meet-New-Make-New
 
 ### **Skew Protection:**
 - **Problem:** Without it, new deployments can break active chat sessions
@@ -122,7 +122,7 @@ Your `vercel.json` now includes:
 
 ### **In Vercel Dashboard:**
 1. **Login** to https://vercel.com
-2. **Select** your "vibely-website" project
+2. **Select** your "Meet-New-Make-New-website" project
 3. **Click** "Settings" tab
 4. **Find** "Skew Protection" section → **Enable**
 5. **Find** "Cold Start Prevention" section → **Enable**

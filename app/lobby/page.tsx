@@ -93,10 +93,19 @@ export default function Lobby() {
           <div className="mb-6">
             <label className="block text-sm font-medium mb-2">Location Filter {!isPremium && '(Premium)'}</label>
             <button
-              onClick={() => router.push('/premium')}
-              className="w-full p-2 border rounded-lg bg-nude-cream hover:bg-nude-beige transition-colors"
+              onClick={() => {
+                if (!isPremium) {
+                  router.push('/premium');
+                } else {
+                  const selected = window.prompt('Enter the location to filter by:', locationFilter);
+                  if (selected !== null) {
+                    setLocationFilter(selected);
+                  }
+                }
+              }}
+              className={`w-full p-2 border rounded-lg ${!isPremium ? 'bg-nude-cream hover:bg-nude-beige transition-colors' : 'bg-gray-100'}`}
             >
-              Select Location (Premium)
+              {isPremium ? `Location: ${locationFilter || 'None'}` : 'Select Location (Premium)'}
             </button>
           </div>
           

@@ -1,16 +1,43 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Matching() {
   const [dots, setDots] = useState('');
   const [roomId, setRoomId] = useState<string | null>(null);
   const [searching, setSearching] = useState(true);
-  const [isMatched, setIsMatched] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Searching for a match...');
   const router = useRouter();
+
+  const pollMatchStatus = useCallback((room: string) => {
+    setSearching(true);
+    setStatusMessage('Searching for a match...');
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/match/status?roomId=${room}`);
+        const data = await res.json();
+
+        if (data.matched) {
+          setSearching(false);
+          clearInterval(interval);
+          router.push(`/room/${room}`);
+          return;
+        }
+
+        if (data.notFound) {
+          setStatusMessage('Still searching...');
+        }
+      } catch (error) {
+        console.error('Match status error:', error);
+        setStatusMessage('Still searching...');
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -41,36 +68,7 @@ export default function Matching() {
     return () => {
       clearInterval(interval);
     };
-  }, [router]);
-
-  const pollMatchStatus = (room: string) => {
-    setSearching(true);
-    setStatusMessage('Searching for a match...');
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/match/status?roomId=${room}`);
-        const data = await res.json();
-
-        if (data.matched) {
-          setIsMatched(true);
-          setSearching(false);
-          clearInterval(interval);
-          router.push(`/room/${room}`);
-          return;
-        }
-
-        if (data.notFound) {
-          setStatusMessage('Still searching...');
-        }
-      } catch (error) {
-        console.error('Match status error:', error);
-        setStatusMessage('Still searching...');
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  };
+  }, [router, pollMatchStatus]);
 
   const handleCancel = async () => {
     if (!roomId) {
