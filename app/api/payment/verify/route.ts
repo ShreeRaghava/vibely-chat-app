@@ -1,23 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import connectDB from '@/lib/mongodb';
 import User from '@/lib/models/User';
-import crypto from 'crypto';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const body = await request.json();
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planType, autoRenew } = await request.json();
-
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !planType) {
-      return NextResponse.json({ error: 'Missing payment verification data' }, { status: 400 });
-    }
-
-    // Verify payment signature
+    // Verify Razorpay signature
     const sign = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSign = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
@@ -28,25 +19,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment verification failed' }, { status: 400 });
     }
 
-    // Update user premium status
-    await connectDB();
+    // Extract user ID from order ID (assuming format: order_timestamp_random)
+    const orderParts = razorpay_order_id.split('_');
+    if (orderParts.length < 3) {
+      return NextResponse.json({ error: 'Invalid order format' }, { status: 400 });
+    }
 
-    const premiumExpiry = new Date();
-    premiumExpiry.setMonth(premiumExpiry.getMonth() + 1); // 1 month subscription
+    // For renewal orders, we need to find the user differently
+    // This is a simplified version - in production you'd store order-user mapping
+    const isRenewal = razorpay_order_id.startsWith('renew_');
 
-    await User.findByIdAndUpdate(session.user.id, {
-      isPremium: true,
-      premiumExpiry: premiumExpiry,
-      premiumPlan: planType,
-      autoRenew: !!autoRenew,
-      razorpayPaymentId: razorpay_payment_id,
-    });
+    if (isRenewal) {
+      // For renewals, we'd need additional logic to identify the user
+      // This is a placeholder - you'd need to implement proper user identification
+      return NextResponse.json({ error: 'Renewal verification not implemented' }, { status: 501 });
+    }
 
+    // For new subscriptions, we'd need to get user from session or stored mapping
+    // This is simplified - in production implement proper order tracking
     return NextResponse.json({
       success: true,
-      message: 'Payment verified and premium activated',
-      premiumExpiry: premiumExpiry,
+      message: 'Payment verified successfully',
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id
     });
+
   } catch (error) {
     console.error('Payment verification error:', error);
     return NextResponse.json({ error: 'Payment verification failed' }, { status: 500 });

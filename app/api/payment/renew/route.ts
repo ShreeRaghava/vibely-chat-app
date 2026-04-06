@@ -4,20 +4,6 @@ import { auth } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import User from '@/lib/models/User';
 
-function getRazorpayInstance() {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-  if (!keyId || !keySecret) {
-    throw new Error('Razorpay keys not configured');
-  }
-
-  return new Razorpay({
-    key_id: keyId,
-    key_secret: keySecret,
-  });
-}
-
 const planPricing: Record<string, number> = {
   location: 110,
   premium: 220,
@@ -40,30 +26,43 @@ export async function POST() {
       return NextResponse.json({ error: 'Auto-renew not enabled' }, { status: 400 });
     }
 
+    // Razorpay Configuration
+    const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
+    const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!razorpayKeyId || !razorpayKeySecret) {
+      return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 });
+    }
+
+    // Initialize Razorpay
+    const razorpay = new Razorpay({
+      key_id: razorpayKeyId,
+      key_secret: razorpayKeySecret,
+    });
+
     const planType = user.premiumPlan || 'premium';
     const amount = planPricing[planType] || 220;
+    const orderId = `renew_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    const options = {
-      amount: amount * 100,
+    // Create Razorpay order for renewal
+    const orderOptions = {
+      amount: amount * 100, // Razorpay expects amount in paisa
       currency: 'INR',
-      receipt: `receipt_${Date.now()}`,
-      notes: {
-        userId: session.user.id,
-        planType,
-        autoRenew: 'true',
-      },
+      receipt: orderId,
+      payment_capture: 1,
     };
 
-    const razorpay = getRazorpayInstance();
-    const order = await razorpay.orders.create(options);
+    const order = await razorpay.orders.create(orderOptions);
 
     return NextResponse.json({
+      gateway: 'razorpay',
       orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      key: process.env.RAZORPAY_KEY_ID,
+      amount: amount.toString(),
+      currency: 'INR',
+      key: razorpayKeyId,
       planType,
       autoRenew: true,
+      upiApps: ['paytm', 'phonepe', 'googlepay'], // Specific UPI apps enabled
     });
   } catch (error) {
     console.error('Renewal creation error:', error);

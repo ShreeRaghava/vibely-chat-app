@@ -2,7 +2,7 @@
 
 import { signIn } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Signup() {
@@ -14,6 +14,14 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Check if user has agreed to legal terms
+    const hasAgreed = localStorage.getItem('legalAgreed');
+    if (!hasAgreed) {
+      router.push('/legal');
+    }
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

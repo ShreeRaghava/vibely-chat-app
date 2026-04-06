@@ -33,7 +33,7 @@ export default function Home() {
             whileHover={{ y: -5, boxShadow: "0 10px 20px rgba(0,0,0,0.2)" }}
             whileTap={{ y: 0 }}
             className="px-6 py-3 bg-black text-nude-beige rounded-lg font-semibold transition-shadow"
-            onClick={() => window.location.href = '/lobby'}
+            onClick={() => window.location.href = '/legal'}
           >
             Start as Guest
           </motion.button>
