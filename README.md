@@ -6,7 +6,7 @@ A stranger chat web application built with Next.js, TypeScript, and Tailwind CSS
 
 - Anonymous guest mode for instant chatting
 - Video calls with WebRTC
-- Premium filters (gender, location) with UPI payments
+- Location and gender filters (completely free)
 - User reporting and moderation
 - Responsive design with nude & monochrome theme
 
@@ -16,8 +16,8 @@ A stranger chat web application built with Next.js, TypeScript, and Tailwind CSS
 - **Styling:** Tailwind CSS with Framer Motion animations
 - **Backend:** Node.js with Socket.io and PeerJS for real-time communication
 - **Database:** MongoDB with Mongoose
-- **Auth:** NextAuth.js with Google OAuth
-- **Payments:** Razorpay integration
+- **Auth:** NextAuth.js with email/password authentication
+- **Payments:** None - completely free app
 
 ## Getting Started
 

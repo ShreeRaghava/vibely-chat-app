@@ -46,26 +46,6 @@ Variable 3:
 - Value: `mongodb+srv://lokeshveeraraghavalu_db_user:uDHhPemRlhuBYCRw@cluster0.zfqozm9.mongodb.net/?appName=Cluster0`
 - Click Add
 
-Variable 4:
-- Name: `GOOGLE_CLIENT_ID`
-- Value: `dummy-client-id`
-- Click Add
-
-Variable 5:
-- Name: `GOOGLE_CLIENT_SECRET`
-- Value: `dummy-client-secret`
-- Click Add
-
-Variable 6:
-- Name: `RAZORPAY_KEY_ID`
-- Value: `dummy-razorpay-key`
-- Click Add
-
-Variable 7:
-- Name: `RAZORPAY_KEY_SECRET`
-- Value: `dummy-razorpay-secret`
-- Click Add
-
 ### **STEP 4: Redeploy**
 
 1. Click on **Deployments** tab
@@ -89,14 +69,14 @@ Once the deployment completes (shows "Ready"), your website is live at:
    - Name: Test User
    - Email: test@example.com
    - Password: Test123!
-4. You should be logged in and see the lobby
+4. You should be logged in and see the lobby with all features available for free
 
 ---
 
 ## 🔧 If You Get an Error:
 
 **Error: "Build error"**
-- Check if all 7 environment variables were added correctly
+- Check if all 3 environment variables were added correctly
 - Make sure the MongoDB URI is exact (no spaces)
 - Redeploy again
 

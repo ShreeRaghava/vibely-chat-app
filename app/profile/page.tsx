@@ -1,12 +1,12 @@
 "use client";
 
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 interface UserStats {
   chatsCount: number;
-  isPremium: boolean;
 }
 
 export default function Profile() {
@@ -36,11 +36,14 @@ export default function Profile() {
           className="bg-white p-6 rounded-lg shadow-lg mb-6"
         >
           <div className="flex items-center space-x-4">
-            <img
-              src={session.user.image || '/default-avatar.png'}
-              alt="Profile"
-              className="w-16 h-16 rounded-full"
-            />
+            <div className="relative w-16 h-16 rounded-full overflow-hidden">
+              <Image
+                src={session.user.image || '/default-avatar.png'}
+                alt="Profile"
+                fill
+                className="object-cover"
+              />
+            </div>
             <div>
               <h1 className="text-2xl font-bold">{session.user.name}</h1>
               <p className="text-dark-grey">{session.user.email}</p>
@@ -63,14 +66,10 @@ export default function Profile() {
           className="bg-white p-6 rounded-lg shadow-lg"
         >
           <h2 className="text-xl font-bold mb-4">Statistics</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold">{stats?.chatsCount || 0}</div>
-              <div className="text-dark-grey">Chats</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{stats?.isPremium ? 'Premium' : 'Free'}</div>
-              <div className="text-dark-grey">Membership</div>
+              <div className="text-dark-grey">Total Chats</div>
             </div>
           </div>
         </motion.div>

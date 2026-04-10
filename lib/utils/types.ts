@@ -6,8 +6,6 @@ export interface ExtendedUser {
   email: string;
   name?: string;
   image?: string;
-  isPremium?: boolean;
-  premiumExpiry?: Date;
 }
 
 // Extended Session type
@@ -30,10 +28,6 @@ export interface User {
   name: string;
   email: string;
   image?: string;
-  isPremium: boolean;
-  premiumPlan?: 'location' | 'premium';
-  premiumExpiry?: Date;
-  autoRenew: boolean;
   chatsCount: number;
   reportsReceived: number;
   banned: boolean;
@@ -78,23 +72,6 @@ export interface Report {
   reason: string;
   chatId?: string;
   createdAt: Date;
-}
-
-// Payment types
-export interface PaymentOrder {
-  orderId: string;
-  amount: number;
-  currency: string;
-  planType: 'location' | 'premium';
-  gateway: 'razorpay';
-}
-
-export interface PaymentStatus {
-  isPremium: boolean;
-  plan?: 'location' | 'premium';
-  expiry?: Date;
-  autoRenew: boolean;
-  isExpired: boolean;
 }
 
 // Form types

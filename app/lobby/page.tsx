@@ -1,45 +1,16 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 
 export default function Lobby() {
   const [chatType, setChatType] = useState<'text' | 'video'>('text');
   const [genderFilter, setGenderFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
-  const [isPremium, setIsPremium] = useState(false);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { data: session } = useSession();
-
-  useEffect(() => {
-    const checkPremiumStatus = async () => {
-      if (session?.user) {
-        try {
-          const response = await fetch('/api/payment/status');
-          if (response.ok) {
-            const data = await response.json();
-            setIsPremium(data.isPremium || false);
-          }
-        } catch (error) {
-          console.error('Error checking premium status:', error);
-        }
-      }
-      setLoading(false);
-    };
-
-    checkPremiumStatus();
-  }, [session]);
 
   const handleStart = () => {
-    // If premium filters selected and not premium, show payment
-    if ((genderFilter || locationFilter) && !isPremium) {
-      router.push('/premium');
-      return;
-    }
-
     const queryParams = new URLSearchParams({
       chatType,
       gender: genderFilter,
@@ -78,7 +49,7 @@ export default function Lobby() {
           </div>
           
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Gender Filter {!isPremium && '(Premium)'}</label>
+            <label className="block text-sm font-medium mb-2">Gender Filter</label>
             <select
               value={genderFilter}
               onChange={(e) => setGenderFilter(e.target.value)}
@@ -91,32 +62,23 @@ export default function Lobby() {
           </div>
           
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Location Filter {!isPremium && '(Premium)'}</label>
-            <button
-              onClick={() => {
-                if (!isPremium) {
-                  router.push('/premium');
-                } else {
-                  const selected = window.prompt('Enter the location to filter by:', locationFilter);
-                  if (selected !== null) {
-                    setLocationFilter(selected);
-                  }
-                }
-              }}
-              className={`w-full p-2 border rounded-lg ${!isPremium ? 'bg-nude-cream hover:bg-nude-beige transition-colors' : 'bg-gray-100'}`}
-            >
-              {isPremium ? `Location: ${locationFilter || 'None'}` : 'Select Location (Premium)'}
-            </button>
+            <label className="block text-sm font-medium mb-2">Location Filter</label>
+            <input
+              type="text"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              placeholder="Enter location (optional)"
+              className="w-full p-2 border rounded-lg"
+            />
           </div>
           
           <motion.button
             whileHover={{ y: -2, boxShadow: "0 5px 15px rgba(0,0,0,0.2)" }}
             whileTap={{ y: 0 }}
             onClick={handleStart}
-            disabled={loading}
-            className="w-full bg-black text-nude-beige py-3 px-4 rounded-lg font-semibold disabled:opacity-50"
+            className="w-full bg-black text-nude-beige py-3 px-4 rounded-lg font-semibold"
           >
-            {loading ? 'Loading...' : 'Start Chatting'}
+            Start Chatting
           </motion.button>
         </motion.div>
       </div>

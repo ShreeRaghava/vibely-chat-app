@@ -15,7 +15,6 @@ export async function GET(
     }
     return NextResponse.json({
       chatsCount: user.chatsCount,
-      isPremium: user.isPremium,
     });
   } catch (error) {
     console.error('User info fetch error:', error);

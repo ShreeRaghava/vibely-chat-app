@@ -35,15 +35,6 @@ export const isValidLocation = (location: string): boolean => {
   return location.length >= 0 && location.length <= 100;
 };
 
-// Plan type validation
-export const isValidPlanType = (planType: string): boolean => {
-  return ['location', 'premium'].includes(planType.toLowerCase());
-};
-
-// Amount validation (positive number)
-export const isValidAmount = (amount: number): boolean => {
-  return amount > 0 && amount < 1000000;
-};
 
 // Sanitize user input to prevent XSS
 export const sanitizeInput = (input: string): string => {

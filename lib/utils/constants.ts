@@ -2,34 +2,6 @@
 export const APP_NAME = 'Meet-New-Make-New';
 export const APP_DESCRIPTION = 'Connect with strangers through anonymous chat';
 
-// Payment plans
-export const PAYMENT_PLANS = {
-  location: {
-    name: 'Location Filter',
-    price: 110,
-    currency: 'INR',
-    duration: 'month',
-    features: ['Filter by location', '30 day access'],
-  },
-  premium: {
-    name: 'Premium',
-    price: 220,
-    currency: 'INR',
-    duration: 'month',
-    features: [
-      'Filter by location & gender',
-      'No ads',
-      'Priority matching',
-      '30 day access',
-    ],
-  },
-};
-
-// Payment gateways
-export const PAYMENT_GATEWAYS = {
-  RAZORPAY: 'razorpay',
-};
-
 // Chat types
 export const CHAT_TYPES = {
   TEXT: 'text',
@@ -50,12 +22,9 @@ export const ROUTES = {
   PROFILE: '/profile',
   PROFILE_EDIT: '/profile/edit',
   FRIENDS: '/friends',
-  PREMIUM: '/premium',
   ADMIN: '/admin',
   PRIVACY: '/privacy',
   TERMS: '/terms',
-  PAYMENT_SUCCESS: '/payment/success',
-  PAYMENT_FAILURE: '/payment/failure',
 };
 
 // API endpoints
@@ -65,7 +34,6 @@ export const API_ENDPOINTS = {
   USER: '/api/user',
   FRIENDS: '/api/friends',
   MATCH: '/api/match',
-  PAYMENT: '/api/payment',
   ADMIN: '/api/admin',
 };
 

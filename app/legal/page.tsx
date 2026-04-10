@@ -42,8 +42,8 @@ export default function Legal() {
               <li>• Be respectful and communicate consensually</li>
               <li>• No harassment, abuse, or inappropriate behavior</li>
               <li>• Violations may result in account termination</li>
-              <li>• Location and gender filters require premium subscription</li>
-              <li>• Guest mode available for free without filters</li>
+              <li>• All features including location and gender filters are completely free</li>
+              <li>• Guest mode available for free access</li>
             </ul>
           </section>
 

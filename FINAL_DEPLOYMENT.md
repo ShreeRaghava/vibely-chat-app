@@ -7,6 +7,7 @@
 - ✅ **Real-time Chat** with Socket.IO
 - ✅ **Video Calling** with PeerJS
 - ✅ **Matching System** for connecting users
+- ✅ **Location & Gender Filters** (completely free - no restrictions)
 - ✅ **MongoDB Atlas** database connection
 - ✅ **Production Build** compiles successfully
 - ✅ **All Pages** functional (21 routes)
@@ -19,17 +20,13 @@
 
 Go to: https://vercel.com/dashboard → Your "meet-new-make-new" project → Settings → Environment Variables
 
-**Add these 7 variables:**
+**Add these 3 variables:**
 
 | Variable | Value |
 |----------|-------|
 | `NEXTAUTH_SECRET` | `c610eb46-550c-47ec-9009-4b84346f4763` |
 | `NEXTAUTH_URL` | `https://meet-new-make-new-pg1r1e1m2-shreeraghavas-projects.vercel.app` |
 | `MONGODB_URI` | `mongodb+srv://lokeshveeraraghavalu_db_user:uDHhPemRlhuBYCRw@cluster0.zfqozm9.mongodb.net/?appName=Cluster0` |
-| `GOOGLE_CLIENT_ID` | `dummy-client-id` |
-| `GOOGLE_CLIENT_SECRET` | `dummy-client-secret` |
-| `RAZORPAY_KEY_ID` | `dummy-razorpay-key` |
-| `RAZORPAY_KEY_SECRET` | `dummy-razorpay-secret` |
 
 ### **STEP 2: Deploy to Production**
 
