@@ -49,11 +49,7 @@ Create a `.env.local` file with the following variables:
 ```
 NEXTAUTH_SECRET=your-secret
 NEXTAUTH_URL=http://localhost:3000
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
 MONGODB_URI=your-mongodb-connection-string
-RAZORPAY_KEY_ID=your-razorpay-key-id
-RAZORPAY_KEY_SECRET=your-razorpay-key-secret
 ```
 
 ## Deployment

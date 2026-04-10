@@ -61,7 +61,6 @@ export const ERROR_MESSAGES = {
   INVALID_NAME: 'Name can only contain letters, spaces, hyphens, and apostrophes',
   USER_EXISTS: 'User with this email already exists',
   USER_NOT_FOUND: 'User not found',
-  PAYMENT_FAILED: 'Payment processing failed',
   VALIDATION_ERROR: 'Please check your input and try again',
 };
 
@@ -70,6 +69,5 @@ export const SUCCESS_MESSAGES = {
   SIGNUP_SUCCESS: 'Account created successfully',
   LOGIN_SUCCESS: 'Logged in successfully',
   PROFILE_UPDATE: 'Profile updated successfully',
-  PAYMENT_SUCCESS: 'Payment processed successfully',
   FRIEND_ADDED: 'Friend added successfully',
 };

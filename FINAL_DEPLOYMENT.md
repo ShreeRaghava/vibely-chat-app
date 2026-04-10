@@ -126,7 +126,7 @@ npm install socket.io express
 ✅ **Match** with random users  
 ✅ **Report** inappropriate users  
 ✅ **Edit Profile** and settings  
-✅ **Use Premium Features** (Razorpay ready)  
+✅ **Use all app features for free**  
 ✅ **Admin Panel** for moderation  
 
 ---

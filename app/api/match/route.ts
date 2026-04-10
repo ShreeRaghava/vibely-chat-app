@@ -29,11 +29,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ roomId: existingRequest.roomId });
     }
 
-    // If user is not premium, ignore premium filters
-    const user = session.user as { id: string; isPremium?: boolean };
-    const isPremium = user.isPremium;
-    const allowedLocation = isPremium ? normalizedLocation : '';
-    const allowedGender = isPremium ? normalizedGender : '';
+    const allowedLocation = normalizedLocation;
+    const allowedGender = normalizedGender;
 
     // Find a matching request
     const matchingRequest = await MatchRequest.findOne({

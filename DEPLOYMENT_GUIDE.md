@@ -110,23 +110,20 @@ Once live, your users can:
 1. **Setup Email Verification** (Optional)
    - Send verification emails before allowing chat
 
-2. **Enable Google OAuth** (Optional)
-   - Setup Google OAuth credentials for production
-   - Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Vercel
+2. **Email Verification** (Optional)
+   - Send confirmation emails before allowing chat
 
 3. **Setup Real-time Chat**
    - Deploy Socket.IO server (e.g., on Railway, Render, or AWS)
-   - Update chat API endpoint
+   - Update chat API endpoint if needed
 
 4. **Setup Video Calling**
    - Configure PeerJS server or use hosted service
-   - Update video call configuration
+   - Update video call configuration if needed
 
-5. **Add Payment Gateway** (For Premium)
-   - Setup Razorpay production keys
-   - Update RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET
-
-6. **Setup Domain** (Optional)
+5. **Setup Domain** (Optional)
+   - Buy a domain (e.g., vibely.com)
+   - Connect it to Vercel
    - Buy a domain (e.g., vibely.com)
    - Connect it to Vercel
 
