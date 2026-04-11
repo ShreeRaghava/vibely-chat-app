@@ -5,6 +5,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Peer from 'peerjs';
+import PermissionsPopup from '@/components/PermissionsPopup';
+import IncomingCallPopup from '@/components/IncomingCallPopup';
 
 type Message = {
   text: string;
@@ -27,6 +29,11 @@ export default function ChatRoom() {
   const [guestId, setGuestId] = useState('');
   const currentUserId = ((session?.user as any)?.id as string) || guestId;
   const [chatError, setChatError] = useState('');
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [userLocation, setUserLocation] = useState<string | null>(null);
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'active' | 'declined'>('idle');
+  const [incomingCallVisible, setIncomingCallVisible] = useState(false);
+  const [callInitiator, setCallInitiator] = useState('');
   const router = useRouter();
 
   const peerRef = useRef<Peer | null>(null);
@@ -34,6 +41,7 @@ export default function ChatRoom() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const hasCalledRef = useRef(false);
+  const callAcceptedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -81,6 +89,30 @@ export default function ChatRoom() {
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
+  // Poll for incoming calls
+  useEffect(() => {
+    if (!isVideo || !id) return;
+
+    const pollCalls = async () => {
+      try {
+        const res = await fetch(`/api/chat/call?roomId=${encodeURIComponent(id)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.callStatus === 'calling' && data.callInitiatedBy !== currentUserId && !callAcceptedRef.current) {
+          setCallInitiator(data.callInitiatedBy);
+          setIncomingCallVisible(true);
+          setCallStatus('calling');
+        }
+      } catch (error) {
+        console.error('Call poll error:', error);
+      }
+    };
+
+    const interval = setInterval(pollCalls, 1000);
+    return () => clearInterval(interval);
+  }, [isVideo, id, currentUserId]);
+
   const publishPeerId = async (peerId: string) => {
     if (!id || !currentUserId) {
       return;
@@ -111,7 +143,7 @@ export default function ChatRoom() {
       const peerIds = data.peerIds || [];
       const remoteId = peerIds.find((item: any) => item.senderId !== currentUserId)?.peerId || null;
 
-      if (remoteId && peerRef.current && streamRef.current && !hasCalledRef.current) {
+      if (remoteId && peerRef.current && streamRef.current && !hasCalledRef.current && callAcceptedRef.current) {
         hasCalledRef.current = true;
         const call = peerRef.current.call(remoteId, streamRef.current);
         call.on('stream', (remoteStream) => {
@@ -127,13 +159,27 @@ export default function ChatRoom() {
   }, [id, currentUserId, myPeerId]);
 
   useEffect(() => {
-    if (!isVideo || !myPeerId) {
+    if (!isVideo || !myPeerId || !callAcceptedRef.current) {
       return;
     }
 
     const interval = setInterval(fetchRemotePeer, 2000);
     return () => clearInterval(interval);
   }, [isVideo, fetchRemotePeer, myPeerId]);
+
+  const handlePermissionsComplete = async (permissions: {
+    camera: boolean;
+    location: string | null;
+  }) => {
+    if (permissions.camera) {
+      if (permissions.location) {
+        setUserLocation(permissions.location);
+        window.localStorage.setItem('userLocation', permissions.location);
+      }
+      setShowPermissions(false);
+      await initializeVideoCall();
+    }
+  };
 
   const initializeVideoCall = useCallback(async () => {
     if (!currentUserId) {
@@ -151,6 +197,20 @@ export default function ChatRoom() {
 
       if (myVideoRef.current) {
         myVideoRef.current.srcObject = stream;
+      }
+
+      // Initiate call notification
+      if (id) {
+        try {
+          await fetch('/api/chat/call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: id, action: 'initiate', userId: currentUserId }),
+          });
+          setCallStatus('calling');
+        } catch (err) {
+          console.error('Call initiation error:', err);
+        }
       }
 
       const peerId = `peer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -171,7 +231,6 @@ export default function ChatRoom() {
         console.log('My peer ID is:', idValue);
         setMyPeerId(idValue);
         await publishPeerId(idValue);
-        await fetchRemotePeer();
       });
 
       peerRef.current.on('call', (call) => {
@@ -191,8 +250,49 @@ export default function ChatRoom() {
     } catch (error) {
       console.error('Error initializing video call:', error);
       setChatError('Unable to start video call. Please allow camera access and try again.');
+      setShowPermissions(false);
+      setIsVideo(false);
     }
-  }, [videoOff, muted, currentUserId, fetchRemotePeer]);
+  }, [videoOff, muted, currentUserId, id]);
+
+  const handleCallAccept = async () => {
+    callAcceptedRef.current = true;
+    setIncomingCallVisible(false);
+
+    if (id && currentUserId) {
+      try {
+        await fetch('/api/chat/call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: id, action: 'accept', userId: currentUserId }),
+        });
+        setCallStatus('active');
+      } catch (err) {
+        console.error('Call accept error:', err);
+      }
+    }
+
+    await fetchRemotePeer();
+  };
+
+  const handleCallDecline = async () => {
+    setIncomingCallVisible(false);
+
+    if (id && currentUserId) {
+      try {
+        await fetch('/api/chat/call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: id, action: 'decline', userId: currentUserId }),
+        });
+        setCallStatus('idle');
+      } catch (err) {
+        console.error('Call decline error:', err);
+      }
+    }
+
+    setIsVideo(false);
+  };
 
   const stopVideoCall = useCallback(() => {
     if (streamRef.current) {
@@ -204,20 +304,22 @@ export default function ChatRoom() {
       peerRef.current = null;
     }
     hasCalledRef.current = false;
+    callAcceptedRef.current = false;
     setPeerConnected(false);
+    setCallStatus('idle');
   }, []);
 
   useEffect(() => {
     const controlVideo = async () => {
       if (isVideo) {
-        await initializeVideoCall();
+        setShowPermissions(true);
       } else {
         stopVideoCall();
       }
     };
 
     controlVideo();
-  }, [isVideo, initializeVideoCall, stopVideoCall]);
+  }, [isVideo, stopVideoCall]);
 
   const sendMessage = async () => {
     const message = newMessage.trim();
@@ -249,7 +351,6 @@ export default function ChatRoom() {
   };
 
   const handleReport = () => {
-    // TODO: report user
     alert('User reported');
   };
 
@@ -263,6 +364,14 @@ export default function ChatRoom() {
 
   return (
     <div className="min-h-screen bg-[#F7F4EF] text-slate-900">
+      <PermissionsPopup isOpen={showPermissions} onComplete={handlePermissionsComplete} />
+      <IncomingCallPopup
+        isOpen={incomingCallVisible}
+        callerName="Stranger"
+        onAccept={handleCallAccept}
+        onDecline={handleCallDecline}
+      />
+
       <div className="mx-auto max-w-6xl p-4 md:p-6">
         <div className="mb-4 rounded-3xl bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -273,6 +382,11 @@ export default function ChatRoom() {
             <div className="flex flex-wrap gap-2 text-sm text-slate-600">
               <span className="rounded-full bg-slate-100 px-3 py-1">Room ID: {id}</span>
               <span className="rounded-full bg-slate-100 px-3 py-1">Mode: {isVideo ? 'Video call' : 'Text chat'}</span>
+              {callStatus !== 'idle' && (
+                <span className={`rounded-full px-3 py-1 text-white ${callStatus === 'calling' ? 'bg-yellow-500' : callStatus === 'active' ? 'bg-green-500' : 'bg-slate-500'}`}>
+                  {callStatus === 'calling' ? 'Calling...' : callStatus === 'active' ? 'Connected' : 'Declined'}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -304,7 +418,7 @@ export default function ChatRoom() {
                   {!peerConnected && (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 text-center text-slate-200">
                       <div>
-                        <p className="text-lg font-medium">Waiting for your match</p>
+                        <p className="text-lg font-medium">{callStatus === 'calling' ? 'Calling...' : 'Waiting for your match'}</p>
                         <p className="mt-2 text-sm text-slate-300">Keep this page open while the other person joins.</p>
                       </div>
                     </div>
@@ -326,7 +440,7 @@ export default function ChatRoom() {
                 className="rounded-3xl bg-white/10 px-4 py-4 text-left transition hover:bg-white/20"
               >
                 <div className="text-2xl">{isVideo ? '💬' : '📹'}</div>
-                <p className="mt-2 text-sm font-medium">{isVideo ? 'Switch to chat' : 'Start video'}</p>
+                <p className="mt-2 text-sm font-medium">{isVideo ? 'Stop Video' : 'Start Video'}</p>
               </button>
               <button
                 onClick={handleNext}
@@ -339,7 +453,7 @@ export default function ChatRoom() {
                 onClick={handleReport}
                 className="rounded-3xl bg-white/10 px-4 py-4 text-left transition hover:bg-white/20"
               >
-                <div className="text-2xl">🚩</div>
+                <div className="text-2xl">🚨</div>
                 <p className="mt-2 text-sm font-medium">Report</p>
               </button>
               <button

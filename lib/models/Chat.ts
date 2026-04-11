@@ -16,6 +16,10 @@ const ChatSchema = new mongoose.Schema({
   roomId: { type: String, required: true, unique: true },
   location: { type: String, default: '' },
   gender: { type: String, default: '' },
+  callStatus: { type: String, enum: ['idle', 'calling', 'active', 'declined'], default: 'idle' },
+  callInitiatedBy: { type: String, default: '' },
+  callAcceptedBy: { type: String, default: '' },
+  callStartedAt: { type: Date },
 });
 
 export default mongoose.models.Chat || mongoose.model('Chat', ChatSchema);
