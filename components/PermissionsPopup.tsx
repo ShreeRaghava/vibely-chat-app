@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type PermissionsPopupProps = {
@@ -13,56 +13,72 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
   const [location, setLocation] = useState('');
   const [cameraPermission, setCameraPermission] = useState(false);
   const [error, setError] = useState('');
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const handleCameraAllow = async () => {
     setError('');
+    setIsRetrying(true);
+    
+    console.log('Starting camera permission request...');
+
     try {
-      // Check if getUserMedia is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Your browser does not support camera access. Please use Chrome, Firefox, Safari, or Edge.');
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const msg = 'Your browser does not support camera access. Please use Chrome, Firefox, Safari, or Edge.';
+        setError(msg);
+        setIsRetrying(false);
         return;
       }
 
-      // Try with video only first (audio can fail sometimes)
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach((track) => track.stop());
-        setCameraPermission(true);
-        setStep('location');
-        setError('');
-        return;
-      } catch (videoErr) {
-        console.error('Video only failed, trying with audio constraints:', videoErr);
-        // If video alone fails, try with relaxed constraints
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: true,
-        });
-        stream.getTracks().forEach((track) => track.stop());
-        setCameraPermission(true);
-        setStep('location');
-        setError('');
-      }
+      console.log('Browser supports getUserMedia, requesting camera access...');
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
+
+      console.log('Got stream successfully:', stream);
+      
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+
+      setCameraPermission(true);
+      setStep('location');
+      setError('');
+      console.log('Camera permission granted, moving to location step');
     } catch (err: any) {
-      console.error('Full camera error:', err);
-      let errorMsg = 'Camera permission denied. Please enable it in browser settings.';
-      
-      if (err.name === 'NotAllowedError') {
-        errorMsg = 'Camera permission was denied. Please click Allow when prompted, or enable it in browser settings.';
-      } else if (err.name === 'NotFoundError' || err.name === 'NotReadableError') {
-        errorMsg = 'No camera device found. Please make sure your camera is connected and not in use by another app.';
+      console.error('Camera permission error:', {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+      });
+
+      let errorMsg = '';
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg = 'You clicked DENY for camera access. Click "Allow Camera" again and make sure to click ALLOW in the browser popup.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg = 'No camera device found. Please connect a camera or check if it\'s being used by another app.';
+      } else if (err.name === 'NotReadableError') {
+        errorMsg = 'Your camera is in use by another application. Please close that app and try again.';
       } else if (err.name === 'SecurityError') {
-        errorMsg = 'Camera access blocked for security reasons. Make sure this site uses HTTPS.';
+        errorMsg = 'Camera access requires HTTPS. Make sure you\'re using a secure URL (https://).';
       } else if (err.name === 'TypeError') {
-        errorMsg = 'Invalid camera request parameters. Your browser may not support your camera.';
+        errorMsg = 'Camera request is invalid. Your browser may not support this.';
+      } else if (err.name === 'AbortError') {
+        errorMsg = 'Camera access was cancelled. Please try again.';
+      } else {
+        errorMsg = `Camera error: ${err.message || err.name || 'Unknown'}. Please try again.`;
       }
-      
+
       setError(errorMsg);
+    } finally {
+      setIsRetrying(false);
     }
   };
 
   const handleSkipCamera = () => {
-    // Allow skipping camera to proceed with location only
+    console.log('User skipped camera permission');
     setCameraPermission(true);
     setStep('location');
     setError('');
@@ -90,15 +106,6 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
     );
   };
 
-  const handleLocationSkip = () => {
-    if (!location.trim()) {
-      setError('Please enter a location or allow location access.');
-      return;
-    }
-    setStep('complete');
-    setError('');
-  };
-
   const handleManualLocation = () => {
     if (!location.trim()) {
       setError('Please enter a location.');
@@ -109,8 +116,10 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
   };
 
   const handleComplete = () => {
-    if (cameraPermission) {
-      onComplete({ camera: true, location: location || null });
+    if (cameraPermission || location.trim()) {
+      onComplete({ camera: cameraPermission, location: location || null });
+    } else {
+      setError('Please allow camera or enter a location to continue.');
     }
   };
 
@@ -132,54 +141,62 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
             <h2 className="text-2xl font-bold mb-2">
               {step === 'camera' && 'Enable Camera'}
               {step === 'location' && 'Share Your Location'}
-              {step === 'complete' && 'All Set!'}
+              {step === 'complete' && 'Ready to Connect!'}
             </h2>
             <p className="text-sm text-slate-600 mb-4">
-              {step === 'camera' && 'We need camera access to help you connect with people nearby.'}
-              {step === 'location' && 'Share your location to match with people in your area.'}
-              {step === 'complete' && 'You\'re ready to start video calling!'}
+              {step === 'camera' && 'When you click Allow, the browser will ask for permission. Click ALLOW in the popup.'}
+              {step === 'location' && 'Share your location to match with people near you.'}
+              {step === 'complete' && 'Ready to start connecting!'}
             </p>
 
-            {error && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-2xl">{error}</div>}
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-2xl border border-red-300">
+                {error}
+              </div>
+            )}
 
             {step === 'camera' && (
               <div className="space-y-3">
                 <button
                   onClick={handleCameraAllow}
-                  className="w-full bg-slate-950 text-white py-3 rounded-2xl font-semibold hover:bg-slate-800 transition"
+                  disabled={isRetrying}
+                  className="w-full bg-slate-950 text-white py-3 rounded-2xl font-semibold hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Allow Camera
+                  {isRetrying ? 'Requesting Camera...' : 'Allow Camera'}
                 </button>
+                <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-2xl">
+                  💡 <strong>Tip:</strong> A browser popup will appear asking for camera permission. Click <strong>ALLOW</strong>.
+                </div>
                 <button
                   onClick={handleSkipCamera}
                   className="w-full bg-slate-200 text-slate-950 py-3 rounded-2xl font-semibold hover:bg-slate-300 transition"
                 >
-                  Skip for Now
+                  Skip & Use Text Chat
                 </button>
               </div>
             )}
 
             {step === 'location' && (
               <div className="space-y-3">
-                <button
-                  onClick={handleLocationAllow}
-                  className="w-full bg-slate-950 text-white py-3 rounded-2xl font-semibold hover:bg-slate-800 transition"
-                >
-                  Use My Location
-                </button>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Or enter a city/area..."
-                    className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-slate-950"
-                  />
-                </div>
+                {!location && (
+                  <button
+                    onClick={handleLocationAllow}
+                    className="w-full bg-slate-950 text-white py-3 rounded-2xl font-semibold hover:bg-slate-800 transition"
+                  >
+                    Use My Location
+                  </button>
+                )}
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Or enter city/area..."
+                  className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-slate-950"
+                />
                 <button
                   onClick={handleManualLocation}
-                  className="w-full bg-slate-950 text-white py-3 rounded-2xl font-semibold hover:bg-slate-800 transition disabled:opacity-50"
                   disabled={!location.trim()}
+                  className="w-full bg-slate-950 text-white py-3 rounded-2xl font-semibold hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue with Location
                 </button>
