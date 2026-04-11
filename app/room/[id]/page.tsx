@@ -155,16 +155,21 @@ export default function ChatRoom() {
 
       const peerId = `peer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       peerRef.current = new Peer(peerId, {
-        host: 'peerjs.com',
+        host: '0.peerjs.com',
         secure: true,
         port: 443,
-        path: '/peerjs',
+        path: '/',
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+          ],
+        },
       });
 
       peerRef.current.on('open', async (idValue) => {
         console.log('My peer ID is:', idValue);
         setMyPeerId(idValue);
-        setPeerConnected(true);
         await publishPeerId(idValue);
         await fetchRemotePeer();
       });
@@ -177,6 +182,11 @@ export default function ChatRoom() {
           }
           setPeerConnected(true);
         });
+      });
+
+      peerRef.current.on('error', (error) => {
+        console.error('PeerJS error:', error);
+        setChatError('Video call setup failed. Please try again.');
       });
     } catch (error) {
       console.error('Error initializing video call:', error);
@@ -252,156 +262,142 @@ export default function ChatRoom() {
   };
 
   return (
-    <div className="min-h-screen bg-nude-beige">
-      <div className="flex flex-col h-screen">
-        {/* Video Container */}
-        <div className="flex-1 bg-black relative">
-          {isVideo ? (
-            <div className="h-full flex">
-              {/* My Video */}
-              <div className="flex-1 relative">
-                <video
-                  ref={myVideoRef}
-                  autoPlay
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  You
-                </div>
-              </div>
-
-              {/* Remote Video */}
-              <div className="flex-1 relative">
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  Stranger {peerConnected ? '🟢' : '🔴'}
-                </div>
-                {!peerConnected && (
-                  <div className="absolute inset-0 flex items-center justify-center text-white">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gray-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <span className="text-2xl">👤</span>
-                      </div>
-                      <p>Waiting for connection...</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+    <div className="min-h-screen bg-[#F7F4EF] text-slate-900">
+      <div className="mx-auto max-w-6xl p-4 md:p-6">
+        <div className="mb-4 rounded-3xl bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm text-slate-500">Match Room</p>
+              <h1 className="text-2xl font-semibold">Chat & Video</h1>
             </div>
-          ) : (
-            <div className="h-full flex items-center justify-center text-white">
-              <div className="text-center">
-                <div className="w-32 h-32 bg-nude-cream rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-4xl">💬</span>
-                </div>
-                <p>Text Chat Mode</p>
-                <p className="text-sm mt-2">Click video button to start video call</p>
-              </div>
+            <div className="flex flex-wrap gap-2 text-sm text-slate-600">
+              <span className="rounded-full bg-slate-100 px-3 py-1">Room ID: {id}</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">Mode: {isVideo ? 'Video call' : 'Text chat'}</span>
             </div>
-          )}
-          
-          {/* Controls */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-4">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setMuted(!muted)}
-              className={`p-3 rounded-full ${muted ? 'bg-red-500' : 'bg-white'}`}
-            >
-              {muted ? '🔇' : '🔊'}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setVideoOff(!videoOff)}
-              className={`p-3 rounded-full ${videoOff ? 'bg-red-500' : 'bg-white'}`}
-            >
-              {videoOff ? '📷' : '📹'}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setIsVideo(!isVideo)}
-              className={`p-3 rounded-full ${isVideo ? 'bg-green-500' : 'bg-gray-500'}`}
-            >
-              {isVideo ? '📹' : '💬'}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleNext}
-              className="p-3 rounded-full bg-blue-500"
-            >
-              ⏭️
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleReport}
-              className="p-3 rounded-full bg-red-500"
-            >
-              🚨
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleEnd}
-              className="p-3 rounded-full bg-gray-500"
-            >
-              ❌
-            </motion.button>
           </div>
         </div>
 
-        {/* Text Chat */}
-        <div className="h-64 bg-white flex flex-col">
-          <div className="flex-1 p-4 overflow-y-auto">
-            {messages.length === 0 ? (
-              <div className="text-center text-gray-500 mt-8">
-                <p>💬 Start chatting!</p>
-                <p className="text-sm">Messages will appear here</p>
-              </div>
-            ) : (
-              messages.map((msg, i) => (
-                <div key={i} className={`mb-3 ${msg.sender === 'me' ? 'text-right' : 'text-left'}`}>
-                  <div className={`inline-block p-3 rounded-lg max-w-xs ${
-                    msg.sender === 'me'
-                      ? 'bg-black text-nude-beige'
-                      : 'bg-nude-cream text-black'
-                  }`}>
-                    <p>{msg.text}</p>
-                    <p className="text-xs opacity-70 mt-1">
-                      {msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </p>
+        <div className="grid gap-4 xl:grid-cols-[1.3fr_0.9fr]">
+          <div className="rounded-[30px] bg-black/90 p-4 text-white shadow-lg">
+            {isVideo ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="relative overflow-hidden rounded-3xl bg-slate-950">
+                  <video
+                    ref={myVideoRef}
+                    autoPlay
+                    muted
+                    className="h-72 w-full object-cover md:h-full"
+                  />
+                  <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-sm">
+                    My camera
                   </div>
                 </div>
-              ))
+                <div className="relative overflow-hidden rounded-3xl bg-slate-950">
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    className="h-72 w-full object-cover md:h-full"
+                  />
+                  <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-sm">
+                    Connected: {peerConnected ? 'Yes' : 'Waiting'}
+                  </div>
+                  {!peerConnected && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 text-center text-slate-200">
+                      <div>
+                        <p className="text-lg font-medium">Waiting for your match</p>
+                        <p className="mt-2 text-sm text-slate-300">Keep this page open while the other person joins.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-white/20 bg-white/5 p-8 text-center text-slate-200">
+                <div>
+                  <p className="text-xl font-semibold">Text chat mode</p>
+                  <p className="mt-3 text-sm text-slate-300">Tap the button below to switch to video.</p>
+                </div>
+              </div>
             )}
+
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <button
+                onClick={() => setIsVideo(!isVideo)}
+                className="rounded-3xl bg-white/10 px-4 py-4 text-left transition hover:bg-white/20"
+              >
+                <div className="text-2xl">{isVideo ? '💬' : '📹'}</div>
+                <p className="mt-2 text-sm font-medium">{isVideo ? 'Switch to chat' : 'Start video'}</p>
+              </button>
+              <button
+                onClick={handleNext}
+                className="rounded-3xl bg-white/10 px-4 py-4 text-left transition hover:bg-white/20"
+              >
+                <div className="text-2xl">⏭️</div>
+                <p className="mt-2 text-sm font-medium">Skip</p>
+              </button>
+              <button
+                onClick={handleReport}
+                className="rounded-3xl bg-white/10 px-4 py-4 text-left transition hover:bg-white/20"
+              >
+                <div className="text-2xl">🚩</div>
+                <p className="mt-2 text-sm font-medium">Report</p>
+              </button>
+              <button
+                onClick={handleEnd}
+                className="rounded-3xl bg-white/10 px-4 py-4 text-left transition hover:bg-white/20"
+              >
+                <div className="text-2xl">❌</div>
+                <p className="mt-2 text-sm font-medium">Leave</p>
+              </button>
+            </div>
           </div>
-          <div className="p-4 border-t flex">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black"
-              placeholder="Type a message..."
-              disabled={!roomConnected}
-            />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={sendMessage}
-              disabled={!roomConnected || !newMessage.trim()}
-              className="bg-black text-nude-beige px-4 py-2 rounded-r-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Send
-            </motion.button>
+
+          <div className="rounded-[30px] bg-white p-4 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Live conversation</p>
+                <h2 className="text-lg font-semibold">Messages</h2>
+              </div>
+              <div className="text-sm text-slate-400">{roomConnected ? 'Connected' : 'Loading...'}</div>
+            </div>
+
+            <div className="min-h-[330px] space-y-3 overflow-y-auto rounded-[24px] border border-slate-200/70 bg-slate-50 p-4">
+              {messages.length === 0 ? (
+                <div className="text-center text-slate-400">
+                  <p className="text-base">No messages yet.</p>
+                  <p className="text-sm">Use the input below to send your first message.</p>
+                </div>
+              ) : (
+                messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-3xl px-4 py-3 text-sm ${msg.sender === 'me' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-900'}`}>
+                      <p>{msg.text}</p>
+                      <p className="mt-2 text-[11px] text-slate-500">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder="Type a message..."
+                className="flex-1 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                disabled={!roomConnected}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!roomConnected || !newMessage.trim()}
+                className="rounded-3xl bg-slate-950 px-5 py-3 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
+            {chatError && <p className="mt-3 text-sm text-red-600">{chatError}</p>}
           </div>
         </div>
       </div>
