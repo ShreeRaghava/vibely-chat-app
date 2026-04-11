@@ -43,12 +43,18 @@ export const authOptions = {
     signIn: '/login',
   },
   callbacks: {
-    async session({ session, user }: { session: Session; user: { id?: string } }) {
-      if (user && session.user) {
+    async jwt({ token, user }: { token: any; user?: { id?: string } }) {
+      if (user?.id) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }: { session: Session; token: any }) {
+      if (session.user) {
         const currentUser = session.user as unknown as {
           id?: string;
         };
-        currentUser.id = user.id;
+        currentUser.id = token.id || token.sub;
       }
       return session;
     },

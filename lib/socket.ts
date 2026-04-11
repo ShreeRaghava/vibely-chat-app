@@ -33,6 +33,10 @@ export const initSocket = (res: NextApiResponseServerIo) => {
           });
         });
 
+        socket.on('peer-id', (roomId: string, peerId: string, userId: string) => {
+          socket.to(roomId).emit('peer-id', { peerId, userId });
+        });
+
         socket.on('disconnect', () => {
           socket.to(roomId).emit('user-disconnected', userId);
         });

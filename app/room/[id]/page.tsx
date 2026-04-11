@@ -16,6 +16,7 @@ export default function ChatRoom() {
   const [videoOff, setVideoOff] = useState(false);
   const [connected, setConnected] = useState(false);
   const [peerConnected, setPeerConnected] = useState(false);
+  const [myPeerId, setMyPeerId] = useState<string | null>(null);
   const router = useRouter();
 
   const socketRef = useRef<Socket | null>(null);
@@ -23,6 +24,8 @@ export default function ChatRoom() {
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const pendingPeerIdRef = useRef<string | null>(null);
+  const hasCalledRef = useRef(false);
 
   useEffect(() => {
     const initSocket = async () => {
@@ -30,12 +33,20 @@ export default function ChatRoom() {
       await fetch('/api/socket');
 
       // Initialize Socket.IO
-      socketRef.current = io();
+      socketRef.current = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
 
       socketRef.current.on('connect', () => {
         console.log('Connected to server');
         setConnected(true);
         socketRef.current?.emit('join-room', id, 'user-' + Date.now());
+      });
+
+      socketRef.current.on('connect_error', (error) => {
+        console.error('Socket connect error:', error);
+      });
+
+      socketRef.current.on('error', (error) => {
+        console.error('Socket error:', error);
       });
 
       socketRef.current.on('receive-message', (data: { message: string; senderId: string; timestamp: Date }) => {
@@ -53,6 +64,25 @@ export default function ChatRoom() {
         console.log('User connected:', userId);
       });
 
+      socketRef.current.on('peer-id', (payload: { peerId: string; userId: string }) => {
+        console.log('Received peer id:', payload.peerId, 'from', payload.userId);
+        const remotePeerId = payload.peerId;
+        if (!peerRef.current || !streamRef.current) {
+          pendingPeerIdRef.current = remotePeerId;
+          return;
+        }
+
+        if (!hasCalledRef.current && peerRef.current && streamRef.current) {
+          hasCalledRef.current = true;
+          const call = peerRef.current.call(remotePeerId, streamRef.current);
+          call.on('stream', (remoteStream) => {
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = remoteStream;
+            }
+          });
+        }
+      });
+
       socketRef.current.on('user-disconnected', (userId: string) => {
         console.log('User disconnected:', userId);
       });
@@ -67,10 +97,9 @@ export default function ChatRoom() {
 
   const initializeVideoCall = useCallback(async () => {
     try {
-      // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
         video: !videoOff,
-        audio: !muted
+        audio: !muted,
       });
 
       streamRef.current = stream;
@@ -79,13 +108,31 @@ export default function ChatRoom() {
         myVideoRef.current.srcObject = stream;
       }
 
-      // Initialize PeerJS
-      const myPeerId = 'user-' + Date.now();
-      peerRef.current = new Peer(myPeerId);
+      const myPeerId = 'peer-' + Date.now();
+      peerRef.current = new Peer(myPeerId, {
+        host: 'peerjs.com',
+        secure: true,
+        port: 443,
+        path: '/peerjs',
+      });
 
-      peerRef.current.on('open', (id) => {
-        console.log('My peer ID is: ' + id);
+      peerRef.current.on('open', (peerId) => {
+        console.log('My peer ID is: ' + peerId);
         setPeerConnected(true);
+        setMyPeerId(peerId);
+        if (socketRef.current) {
+          socketRef.current.emit('peer-id', id, peerId, 'user-' + Date.now());
+        }
+
+        if (pendingPeerIdRef.current && streamRef.current && !hasCalledRef.current) {
+          hasCalledRef.current = true;
+          const call = peerRef.current!.call(pendingPeerIdRef.current, streamRef.current);
+          call.on('stream', (remoteStream) => {
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = remoteStream;
+            }
+          });
+        }
       });
 
       peerRef.current.on('call', (call) => {
@@ -96,23 +143,6 @@ export default function ChatRoom() {
           }
         });
       });
-
-      // For demo purposes, we'll simulate connecting to another peer
-      // In a real app, you'd get the other peer's ID from the server
-      setTimeout(() => {
-        if (peerRef.current) {
-          const fakePeerId = 'user-' + (Date.now() - 1000);
-          const call = peerRef.current!.call(fakePeerId, stream);
-          if (call) {
-            call.on('stream', (remoteStream) => {
-              if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = remoteStream;
-              }
-            });
-          }
-        }
-      }, 2000);
-
     } catch (error) {
       console.error('Error initializing video call:', error);
     }

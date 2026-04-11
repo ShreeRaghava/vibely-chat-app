@@ -50,16 +50,34 @@ export default function Matching() {
       const gender = params.get('gender') || '';
       const location = params.get('location') || '';
 
+      let guestId = '';
+      if (typeof window !== 'undefined') {
+        guestId = window.localStorage.getItem('guestId') || '';
+        if (!guestId) {
+          guestId = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+          window.localStorage.setItem('guestId', guestId);
+        }
+      }
+
       const res = await fetch('/api/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatType, gender, location }),
+        body: JSON.stringify({ chatType, gender, location, guestId }),
       });
 
       const data = await res.json();
-      setRoomId(data.roomId);
+      if (data.error) {
+        console.error('Match error:', data.error);
+        setStatusMessage('Unable to start matching. Please try again.');
+        setSearching(false);
+        return;
+      }
 
-      // Start polling for match results
+      if (data.guestId && typeof window !== 'undefined') {
+        window.localStorage.setItem('guestId', data.guestId);
+      }
+
+      setRoomId(data.roomId);
       pollMatchStatus(data.roomId);
     };
 

@@ -49,7 +49,7 @@ export default function Lobby() {
           </div>
           
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Gender Filter</label>
+            <label className="block text-sm font-medium mb-2">Select Gender (matches opposite only)</label>
             <select
               value={genderFilter}
               onChange={(e) => setGenderFilter(e.target.value)}

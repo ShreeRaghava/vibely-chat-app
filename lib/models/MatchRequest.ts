@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
 const MatchRequestSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  guestId: { type: String, default: '' },
   roomId: { type: String, required: true, unique: true },
   chatType: { type: String, default: 'text' },
   gender: { type: String, default: '' },

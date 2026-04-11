@@ -9,66 +9,101 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    let session = null;
+    try {
+      session = await auth();
+    } catch (error) {
+      session = null;
     }
 
     const body = await request.json();
     const chatType = (body.chatType || 'text').toString().trim().toLowerCase();
     const location = (body.location || '').toString().trim().toLowerCase();
     const gender = (body.gender || '').toString().trim().toLowerCase();
+    const guestId = (body.guestId || '').toString().trim();
 
     // Normalize and sanitize
     const normalizedLocation = location;
     const normalizedGender = gender;
 
-    // If a user already has a pending request, return the same roomId
-    const existingRequest = await MatchRequest.findOne({ user: session.user.id });
-    if (existingRequest) {
-      return NextResponse.json({ roomId: existingRequest.roomId });
+    const currentUserId = session?.user?.id || '';
+    const hasUser = Boolean(currentUserId);
+    const hasGuest = Boolean(guestId);
+
+    if (!hasUser && !hasGuest) {
+      return NextResponse.json({ error: 'Guest ID or login required' }, { status: 400 });
     }
 
-    const allowedLocation = normalizedLocation;
-    const allowedGender = normalizedGender;
+    const existingRequestFilter: any = { $or: [] };
+    if (hasUser) existingRequestFilter.$or.push({ user: currentUserId });
+    if (hasGuest) existingRequestFilter.$or.push({ guestId });
 
-    // Find a matching request
-    const matchingRequest = await MatchRequest.findOne({
-      location: allowedLocation,
-      gender: allowedGender,
-      user: { $ne: session.user.id },
-      chatType: chatType,
-    });
+    const existingRequest = await MatchRequest.findOne(existingRequestFilter);
+    if (existingRequest) {
+      return NextResponse.json({ roomId: existingRequest.roomId, guestId: guestId || undefined });
+    }
+
+    const locationCriteria = normalizedLocation
+      ? { $in: [normalizedLocation, ''] }
+      : { $exists: true };
+
+    // If a gender is selected, match opposite-gender requests or open requests.
+    // If no gender is selected, allow any gender.
+    const oppositeGender = normalizedGender === 'male'
+      ? 'female'
+      : normalizedGender === 'female'
+      ? 'male'
+      : '';
+
+    const genderCriteria = normalizedGender
+      ? { $in: [oppositeGender, ''] }
+      : { $exists: true };
+
+    const matchQuery: any = {
+      location: locationCriteria,
+      gender: genderCriteria,
+      chatType,
+    };
+
+    const excludeSelf: any = { $nor: [] };
+    if (hasUser) excludeSelf.$nor.push({ user: currentUserId });
+    if (hasGuest) excludeSelf.$nor.push({ guestId });
+    if (excludeSelf.$nor.length) {
+      matchQuery.$and = [excludeSelf];
+    }
+
+    const matchingRequest = await MatchRequest.findOne(matchQuery);
 
     if (matchingRequest) {
-      // Match found
       const roomId = matchingRequest.roomId;
+      const participants = [];
+      if (hasUser) participants.push(currentUserId);
+      if (hasGuest) participants.push(guestId);
+      if (matchingRequest.user) participants.push(matchingRequest.user.toString());
+      if (matchingRequest.guestId) participants.push(matchingRequest.guestId);
 
-      // Create chat record to store room data
       await Chat.create({
-        participants: [session.user.id, matchingRequest.user],
+        participants: [...new Set(participants)],
         roomId,
-        location: allowedLocation,
-        gender: allowedGender,
+        location: normalizedLocation,
+        gender: normalizedGender,
       });
 
-      // Remove the request from queue
       await MatchRequest.deleteOne({ _id: matchingRequest._id });
-
-      return NextResponse.json({ roomId });
+      return NextResponse.json({ roomId, guestId: guestId || undefined });
     }
 
-    // No match found, create a waiting request
     const roomId = uuidv4();
     await MatchRequest.create({
-      user: session.user.id,
+      user: hasUser ? currentUserId : undefined,
+      guestId: guestId || '',
       roomId,
       chatType,
-      location: allowedLocation,
-      gender: allowedGender,
+      location: normalizedLocation,
+      gender: normalizedGender,
     });
 
-    return NextResponse.json({ roomId });
+    return NextResponse.json({ roomId, guestId: guestId || undefined });
   } catch (error) {
     console.error('Match error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
