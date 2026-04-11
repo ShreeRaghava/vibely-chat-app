@@ -7,6 +7,10 @@ const ChatSchema = new mongoose.Schema({
     content: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
   }],
+  peerIds: [{
+    senderId: { type: String },
+    peerId: { type: String },
+  }],
   startedAt: { type: Date, default: Date.now },
   endedAt: { type: Date },
   roomId: { type: String, required: true, unique: true },

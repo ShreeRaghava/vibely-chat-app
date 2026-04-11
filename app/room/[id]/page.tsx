@@ -3,99 +3,144 @@
 import { motion } from 'framer-motion';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { io, Socket } from 'socket.io-client';
+import { useSession } from 'next-auth/react';
 import Peer from 'peerjs';
+
+type Message = {
+  text: string;
+  sender: 'me' | 'them';
+  timestamp: Date;
+};
 
 export default function ChatRoom() {
   const params = useParams();
   const id = params?.id as string;
-  const [messages, setMessages] = useState<Array<{text: string, sender: 'me' | 'them', timestamp: Date}>>([]);
+  const { data: session } = useSession();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isVideo, setIsVideo] = useState(false);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [roomConnected, setRoomConnected] = useState(false);
   const [peerConnected, setPeerConnected] = useState(false);
   const [myPeerId, setMyPeerId] = useState<string | null>(null);
+  const [guestId, setGuestId] = useState('');
+  const currentUserId = ((session?.user as any)?.id as string) || guestId;
+  const [chatError, setChatError] = useState('');
   const router = useRouter();
 
-  const socketRef = useRef<Socket | null>(null);
   const peerRef = useRef<Peer | null>(null);
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const pendingPeerIdRef = useRef<string | null>(null);
   const hasCalledRef = useRef(false);
 
   useEffect(() => {
-    const initSocket = async () => {
-      // Ensure socket server is initialized on the server side
-      await fetch('/api/socket');
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-      // Initialize Socket.IO
-      socketRef.current = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+    const storedGuestId = window.localStorage.getItem('guestId');
+    if (storedGuestId) {
+      setGuestId(storedGuestId);
+      return;
+    }
 
-      socketRef.current.on('connect', () => {
-        console.log('Connected to server');
-        setConnected(true);
-        socketRef.current?.emit('join-room', id, 'user-' + Date.now());
+    const newGuestId = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem('guestId', newGuestId);
+    setGuestId(newGuestId);
+  }, []);
+
+  const fetchMessages = useCallback(async () => {
+    if (!id || !currentUserId) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/chat/history?roomId=${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      const data = await res.json();
+      const formatted = (data.messages || []).map((msg: any) => ({
+        text: msg.content,
+        sender: msg.sender === currentUserId ? 'me' : 'them',
+        timestamp: new Date(msg.timestamp),
+      }));
+      setMessages(formatted);
+      setRoomConnected(true);
+    } catch (error) {
+      console.error('Message load error:', error);
+      setChatError('Unable to load room data. Please refresh the page.');
+    }
+  }, [id, currentUserId]);
+
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 2500);
+    return () => clearInterval(interval);
+  }, [fetchMessages]);
+
+  const publishPeerId = async (peerId: string) => {
+    if (!id || !currentUserId) {
+      return;
+    }
+
+    try {
+      await fetch('/api/chat/peer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: id, senderId: currentUserId, peerId }),
       });
+    } catch (error) {
+      console.error('Peer publish error:', error);
+    }
+  };
 
-      socketRef.current.on('connect_error', (error) => {
-        console.error('Socket connect error:', error);
-      });
+  const fetchRemotePeer = useCallback(async () => {
+    if (!id || !currentUserId || !myPeerId) {
+      return;
+    }
 
-      socketRef.current.on('error', (error) => {
-        console.error('Socket error:', error);
-      });
+    try {
+      const res = await fetch(`/api/chat/peer?roomId=${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        return;
+      }
+      const data = await res.json();
+      const peerIds = data.peerIds || [];
+      const remoteId = peerIds.find((item: any) => item.senderId !== currentUserId)?.peerId || null;
 
-      socketRef.current.on('receive-message', (data: { message: string; senderId: string; timestamp: Date }) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: data.message,
-            sender: 'them',
-            timestamp: new Date(data.timestamp),
-          },
-        ]);
-      });
+      if (remoteId && peerRef.current && streamRef.current && !hasCalledRef.current) {
+        hasCalledRef.current = true;
+        const call = peerRef.current.call(remoteId, streamRef.current);
+        call.on('stream', (remoteStream) => {
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+          }
+          setPeerConnected(true);
+        });
+      }
+    } catch (error) {
+      console.error('Peer fetch error:', error);
+    }
+  }, [id, currentUserId, myPeerId]);
 
-      socketRef.current.on('user-connected', (userId: string) => {
-        console.log('User connected:', userId);
-      });
+  useEffect(() => {
+    if (!isVideo || !myPeerId) {
+      return;
+    }
 
-      socketRef.current.on('peer-id', (payload: { peerId: string; userId: string }) => {
-        console.log('Received peer id:', payload.peerId, 'from', payload.userId);
-        const remotePeerId = payload.peerId;
-        if (!peerRef.current || !streamRef.current) {
-          pendingPeerIdRef.current = remotePeerId;
-          return;
-        }
-
-        if (!hasCalledRef.current && peerRef.current && streamRef.current) {
-          hasCalledRef.current = true;
-          const call = peerRef.current.call(remotePeerId, streamRef.current);
-          call.on('stream', (remoteStream) => {
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-            }
-          });
-        }
-      });
-
-      socketRef.current.on('user-disconnected', (userId: string) => {
-        console.log('User disconnected:', userId);
-      });
-    };
-
-    initSocket();
-
-    return () => {
-      socketRef.current?.disconnect();
-    };
-  }, [id]);
+    const interval = setInterval(fetchRemotePeer, 2000);
+    return () => clearInterval(interval);
+  }, [isVideo, fetchRemotePeer, myPeerId]);
 
   const initializeVideoCall = useCallback(async () => {
+    if (!currentUserId) {
+      setChatError('Unable to start video call without a valid user identifier.');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: !videoOff,
@@ -108,31 +153,20 @@ export default function ChatRoom() {
         myVideoRef.current.srcObject = stream;
       }
 
-      const myPeerId = 'peer-' + Date.now();
-      peerRef.current = new Peer(myPeerId, {
+      const peerId = `peer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      peerRef.current = new Peer(peerId, {
         host: 'peerjs.com',
         secure: true,
         port: 443,
         path: '/peerjs',
       });
 
-      peerRef.current.on('open', (peerId) => {
-        console.log('My peer ID is: ' + peerId);
+      peerRef.current.on('open', async (idValue) => {
+        console.log('My peer ID is:', idValue);
+        setMyPeerId(idValue);
         setPeerConnected(true);
-        setMyPeerId(peerId);
-        if (socketRef.current) {
-          socketRef.current.emit('peer-id', id, peerId, 'user-' + Date.now());
-        }
-
-        if (pendingPeerIdRef.current && streamRef.current && !hasCalledRef.current) {
-          hasCalledRef.current = true;
-          const call = peerRef.current!.call(pendingPeerIdRef.current, streamRef.current);
-          call.on('stream', (remoteStream) => {
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-            }
-          });
-        }
+        await publishPeerId(idValue);
+        await fetchRemotePeer();
       });
 
       peerRef.current.on('call', (call) => {
@@ -141,12 +175,14 @@ export default function ChatRoom() {
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
           }
+          setPeerConnected(true);
         });
       });
     } catch (error) {
       console.error('Error initializing video call:', error);
+      setChatError('Unable to start video call. Please allow camera access and try again.');
     }
-  }, [videoOff, muted]);
+  }, [videoOff, muted, currentUserId, fetchRemotePeer]);
 
   const stopVideoCall = useCallback(() => {
     if (streamRef.current) {
@@ -157,6 +193,7 @@ export default function ChatRoom() {
       peerRef.current.destroy();
       peerRef.current = null;
     }
+    hasCalledRef.current = false;
     setPeerConnected(false);
   }, []);
 
@@ -172,19 +209,32 @@ export default function ChatRoom() {
     controlVideo();
   }, [isVideo, initializeVideoCall, stopVideoCall]);
 
-  const sendMessage = () => {
-    if (newMessage.trim() && socketRef.current) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: newMessage,
-          sender: 'me',
-          timestamp: new Date(),
-        },
-      ]);
+  const sendMessage = async () => {
+    const message = newMessage.trim();
+    if (!message || !id || !currentUserId) {
+      return;
+    }
 
-      socketRef.current.emit('send-message', newMessage);
-      setNewMessage('');
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: message,
+        sender: 'me',
+        timestamp: new Date(),
+      },
+    ]);
+
+    setNewMessage('');
+
+    try {
+      await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: id, senderId: currentUserId, content: message }),
+      });
+    } catch (error) {
+      console.error('Send message error:', error);
+      setChatError('Unable to send message. Please try again.');
     }
   };
 
@@ -341,13 +391,13 @@ export default function ChatRoom() {
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black"
               placeholder="Type a message..."
-              disabled={!connected}
+              disabled={!roomConnected}
             />
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={sendMessage}
-              disabled={!connected || !newMessage.trim()}
+              disabled={!roomConnected || !newMessage.trim()}
               className="bg-black text-nude-beige px-4 py-2 rounded-r-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send
