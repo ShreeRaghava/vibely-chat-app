@@ -15,16 +15,57 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
   const [error, setError] = useState('');
 
   const handleCameraAllow = async () => {
+    setError('');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      stream.getTracks().forEach((track) => track.stop());
-      setCameraPermission(true);
-      setStep('location');
-      setError('');
-    } catch (err) {
-      setError('Camera permission denied. Please enable it in browser settings.');
-      console.error('Camera error:', err);
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Your browser does not support camera access. Please use Chrome, Firefox, Safari, or Edge.');
+        return;
+      }
+
+      // Try with video only first (audio can fail sometimes)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach((track) => track.stop());
+        setCameraPermission(true);
+        setStep('location');
+        setError('');
+        return;
+      } catch (videoErr) {
+        console.error('Video only failed, trying with audio constraints:', videoErr);
+        // If video alone fails, try with relaxed constraints
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: true,
+        });
+        stream.getTracks().forEach((track) => track.stop());
+        setCameraPermission(true);
+        setStep('location');
+        setError('');
+      }
+    } catch (err: any) {
+      console.error('Full camera error:', err);
+      let errorMsg = 'Camera permission denied. Please enable it in browser settings.';
+      
+      if (err.name === 'NotAllowedError') {
+        errorMsg = 'Camera permission was denied. Please click Allow when prompted, or enable it in browser settings.';
+      } else if (err.name === 'NotFoundError' || err.name === 'NotReadableError') {
+        errorMsg = 'No camera device found. Please make sure your camera is connected and not in use by another app.';
+      } else if (err.name === 'SecurityError') {
+        errorMsg = 'Camera access blocked for security reasons. Make sure this site uses HTTPS.';
+      } else if (err.name === 'TypeError') {
+        errorMsg = 'Invalid camera request parameters. Your browser may not support your camera.';
+      }
+      
+      setError(errorMsg);
     }
+  };
+
+  const handleSkipCamera = () => {
+    // Allow skipping camera to proceed with location only
+    setCameraPermission(true);
+    setStep('location');
+    setError('');
   };
 
   const handleLocationAllow = () => {
@@ -110,7 +151,7 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
                   Allow Camera
                 </button>
                 <button
-                  onClick={() => setStep('location')}
+                  onClick={handleSkipCamera}
                   className="w-full bg-slate-200 text-slate-950 py-3 rounded-2xl font-semibold hover:bg-slate-300 transition"
                 >
                   Skip for Now

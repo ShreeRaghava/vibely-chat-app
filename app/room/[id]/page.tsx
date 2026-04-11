@@ -188,15 +188,56 @@ export default function ChatRoom() {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: !videoOff,
-        audio: !muted,
-      });
+      let stream: MediaStream | null = null;
+      let videoEnabled = false;
+      let audioEnabled = false;
 
-      streamRef.current = stream;
+      // Try video + audio first
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: !muted,
+        });
+        videoEnabled = true;
+        audioEnabled = !muted;
+        console.log('Got stream with video and audio');
+      } catch (fullErr) {
+        console.warn('Video+audio failed, trying video only:', fullErr);
+        
+        // Try video only
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+          });
+          videoEnabled = true;
+          audioEnabled = false;
+          console.log('Got stream with video only (no audio)');
+        } catch (videoErr) {
+          console.warn('Video only failed, continuing with audio only:', videoErr);
+          
+          // Try audio only
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: !muted,
+            });
+            videoEnabled = false;
+            audioEnabled = !muted;
+            console.log('Got stream with audio only (no video)');
+          } catch (audioErr) {
+            console.error('All media failed:', audioErr);
+            setChatError('Unable to access camera or microphone. Please check browser permissions and try again.');
+            setIsVideo(false);
+            return;
+          }
+        }
+      }
 
-      if (myVideoRef.current) {
-        myVideoRef.current.srcObject = stream;
+      if (stream) {
+        streamRef.current = stream;
+
+        if (myVideoRef.current && videoEnabled) {
+          myVideoRef.current.srcObject = stream;
+        }
       }
 
       // Initiate call notification
@@ -234,7 +275,12 @@ export default function ChatRoom() {
       });
 
       peerRef.current.on('call', (call) => {
-        call.answer(stream);
+        if (streamRef.current) {
+          call.answer(streamRef.current);
+        } else {
+          // Answer without stream if no media available
+          call.answer();
+        }
         call.on('stream', (remoteStream) => {
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
@@ -245,11 +291,11 @@ export default function ChatRoom() {
 
       peerRef.current.on('error', (error) => {
         console.error('PeerJS error:', error);
-        setChatError('Video call setup failed. Please try again.');
+        setChatError('Video call connection failed. Please try again.');
       });
     } catch (error) {
-      console.error('Error initializing video call:', error);
-      setChatError('Unable to start video call. Please allow camera access and try again.');
+      console.error('Fatal error initializing video:', error);
+      setChatError('Unable to start video call. Please try again.');
       setShowPermissions(false);
       setIsVideo(false);
     }
