@@ -30,7 +30,6 @@ export default function ChatRoom() {
   const currentUserId = ((session?.user as any)?.id as string) || guestId;
   const [chatError, setChatError] = useState('');
   const [showPermissions, setShowPermissions] = useState(false);
-  const [userLocation, setUserLocation] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'active' | 'declined'>('idle');
   const [incomingCallVisible, setIncomingCallVisible] = useState(false);
   const [callInitiator, setCallInitiator] = useState('');
@@ -172,10 +171,6 @@ export default function ChatRoom() {
     location: string | null;
   }) => {
     if (permissions.camera) {
-      if (permissions.location) {
-        setUserLocation(permissions.location);
-        window.localStorage.setItem('userLocation', permissions.location);
-      }
       setShowPermissions(false);
       await initializeVideoCall();
     }

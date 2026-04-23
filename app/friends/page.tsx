@@ -9,6 +9,7 @@ interface Friend {
   id: string;
   name: string;
   email: string;
+  isOnline?: boolean;
 }
 
 export default function FriendsPage() {
@@ -138,11 +139,27 @@ export default function FriendsPage() {
             <ul className="space-y-3">
               {friends.map((friend) => (
                 <li key={friend.id} className="border p-3 rounded-lg flex justify-between items-center">
-                  <div>
-                    <div className="font-semibold">{friend.name}</div>
-                    <div className="text-sm text-dark-grey">{friend.email}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                        <span className="text-lg font-semibold">{friend.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      {friend.isOnline && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-semibold">{friend.name}</div>
+                      <div className="text-sm text-dark-grey">{friend.email}</div>
+                    </div>
                   </div>
-                  <div className="text-xs text-dark-grey">Friend</div>
+                  <div className="text-xs text-dark-grey">
+                    {friend.isOnline ? (
+                      <span className="text-green-600 font-medium">● Online</span>
+                    ) : (
+                      <span className="text-slate-400">Offline</span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

@@ -13,6 +13,7 @@ const UserSchema = new mongoose.Schema({
   chatsCount: { type: Number, default: 0 },
   reportsReceived: { type: Number, default: 0 },
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  lastActive: { type: Date, default: Date.now }, // Track last active time for online status
   banned: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 });

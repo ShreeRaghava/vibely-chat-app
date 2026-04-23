@@ -12,12 +12,21 @@ export async function GET() {
 
     await connectDB();
 
-    const user = await User.findById(session.user.id).populate('friends', 'name email');
+    const user = await User.findById(session.user.id).populate('friends', 'name email lastActive');
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ friends: user.friends || [] });
+    // Add online status based on lastActive (online if active in last 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const friendsWithStatus = (user.friends || []).map((friend: any) => ({
+      id: friend._id,
+      name: friend.name,
+      email: friend.email,
+      isOnline: friend.lastActive && new Date(friend.lastActive) > fiveMinutesAgo,
+    }));
+
+    return NextResponse.json({ friends: friendsWithStatus });
   } catch (error) {
     console.error('Friends GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
