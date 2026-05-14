@@ -30,6 +30,7 @@ export default function ChatRoom() {
   const currentUserId = ((session?.user as any)?.id as string) || guestId;
   const [chatError, setChatError] = useState('');
   const [showPermissions, setShowPermissions] = useState(false);
+  const [userLocation, setUserLocation] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'active' | 'declined'>('idle');
   const [incomingCallVisible, setIncomingCallVisible] = useState(false);
   const [callInitiator, setCallInitiator] = useState('');
@@ -168,11 +169,29 @@ export default function ChatRoom() {
 
   const handlePermissionsComplete = async (permissions: {
     camera: boolean;
+    microphone: boolean;
     location: string | null;
   }) => {
-    if (permissions.camera) {
+    if (permissions.camera || permissions.microphone) {
+      if (permissions.location) {
+        setUserLocation(permissions.location);
+        window.localStorage.setItem('userLocation', permissions.location);
+        
+        // Save location to user profile
+        try {
+          await fetch('/api/user/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location: permissions.location }),
+          });
+        } catch (err) {
+          console.error('Failed to save location:', err);
+        }
+      }
       setShowPermissions(false);
       await initializeVideoCall();
+    } else {
+      setChatError('Please allow camera or microphone to start a video call.');
     }
   };
 

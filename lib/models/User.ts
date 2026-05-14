@@ -9,11 +9,13 @@ const UserSchema = new mongoose.Schema({
   location: { type: String, default: '' }, // User's location for matching
   gender: { type: String, default: '' }, // male, female, or other
   cameraPermission: { type: Boolean, default: false }, // Camera access granted
+  microphonePermission: { type: Boolean, default: false }, // Microphone access granted
   locationPermission: { type: Boolean, default: false }, // Location access granted
   chatsCount: { type: Number, default: 0 },
   reportsReceived: { type: Number, default: 0 },
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  lastActive: { type: Date, default: Date.now }, // Track last active time for online status
+  friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Incoming friend requests
+  requestsSentTo: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Outgoing friend requests
   banned: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 });
