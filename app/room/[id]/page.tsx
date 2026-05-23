@@ -143,14 +143,19 @@ export default function ChatRoom() {
       const peerIds = data.peerIds || [];
       const remoteId = peerIds.find((item: any) => item.senderId !== currentUserId)?.peerId || null;
 
-      if (remoteId && peerRef.current && streamRef.current && !hasCalledRef.current && callAcceptedRef.current) {
+      if (remoteId && peerRef.current && streamRef.current && !hasCalledRef.current) {
         hasCalledRef.current = true;
+        console.log('Making call to remote peer:', remoteId);
         const call = peerRef.current.call(remoteId, streamRef.current);
         call.on('stream', (remoteStream) => {
+          console.log('Received remote stream');
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
           }
           setPeerConnected(true);
+        });
+        call.on('error', (error) => {
+          console.error('Call error:', error);
         });
       }
     } catch (error) {
