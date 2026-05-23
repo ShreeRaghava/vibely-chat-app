@@ -115,17 +115,26 @@ export default function ChatRoom() {
 
   const publishPeerId = async (peerId: string) => {
     if (!id || !currentUserId) {
+      console.warn('Cannot publish peer ID: missing id or userId');
       return;
     }
 
     try {
-      await fetch('/api/chat/peer', {
+      console.log('📡 Publishing peer ID:', peerId, 'for user:', currentUserId);
+      const res = await fetch('/api/chat/peer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId: id, senderId: currentUserId, peerId }),
       });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to publish peer ID: ${res.status}`);
+      }
+      
+      console.log('✅ Peer ID published successfully');
     } catch (error) {
-      console.error('Peer publish error:', error);
+      console.error('❌ Peer publish error:', error);
+      setChatError('Failed to publish connection info. Please refresh.');
     }
   };
 
@@ -137,26 +146,52 @@ export default function ChatRoom() {
     try {
       const res = await fetch(`/api/chat/peer?roomId=${encodeURIComponent(id)}`);
       if (!res.ok) {
+        console.warn('Peer fetch failed:', res.status);
         return;
       }
       const data = await res.json();
       const peerIds = data.peerIds || [];
+      console.log('Fetched peer IDs:', peerIds, 'My ID:', currentUserId);
+      
       const remoteId = peerIds.find((item: any) => item.senderId !== currentUserId)?.peerId || null;
+      
+      if (remoteId) {
+        console.log('Found remote peer:', remoteId);
+      }
 
       if (remoteId && peerRef.current && streamRef.current && !hasCalledRef.current) {
         hasCalledRef.current = true;
-        console.log('Making call to remote peer:', remoteId);
-        const call = peerRef.current.call(remoteId, streamRef.current);
-        call.on('stream', (remoteStream) => {
-          console.log('Received remote stream');
-          if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remoteStream;
-          }
-          setPeerConnected(true);
-        });
-        call.on('error', (error) => {
-          console.error('Call error:', error);
-        });
+        console.log('🔴 Making call to remote peer:', remoteId);
+        console.log('Stream ready:', !!streamRef.current, 'Peer ref:', !!peerRef.current);
+        
+        try {
+          const call = peerRef.current.call(remoteId, streamRef.current);
+          console.log('Call created:', call.peerConnection?.connectionState);
+          
+          call.on('stream', (remoteStream) => {
+            console.log('✅ Received remote stream');
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = remoteStream;
+              console.log('Remote video element updated');
+            }
+            setPeerConnected(true);
+            setCallStatus('active');
+          });
+          
+          call.on('error', (error) => {
+            console.error('❌ Call error:', error);
+            setChatError(`Connection error: ${error}`);
+          });
+          
+          call.on('close', () => {
+            console.log('Call closed');
+          });
+        } catch (callErr) {
+          console.error('Failed to create call:', callErr);
+          hasCalledRef.current = false;
+        }
+      } else if (!remoteId) {
+        console.log('Waiting for remote peer... (IDs found: ' + peerIds.length + ')');
       }
     } catch (error) {
       console.error('Peer fetch error:', error);
@@ -164,11 +199,12 @@ export default function ChatRoom() {
   }, [id, currentUserId, myPeerId]);
 
   useEffect(() => {
-    if (!isVideo || !myPeerId || !callAcceptedRef.current) {
+    if (!isVideo || !myPeerId || !peerRef.current) {
       return;
     }
 
-    const interval = setInterval(fetchRemotePeer, 2000);
+    console.log('Starting peer polling...');
+    const interval = setInterval(fetchRemotePeer, 1500);
     return () => clearInterval(interval);
   }, [isVideo, fetchRemotePeer, myPeerId]);
 
@@ -274,6 +310,8 @@ export default function ChatRoom() {
       }
 
       const peerId = `peer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      console.log('Initializing PeerJS with ID:', peerId);
+      
       peerRef.current = new Peer(peerId, {
         host: '0.peerjs.com',
         secure: true,
@@ -283,34 +321,56 @@ export default function ChatRoom() {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
           ],
         },
+        debug: 3,
       });
 
       peerRef.current.on('open', async (idValue) => {
-        console.log('My peer ID is:', idValue);
+        console.log('✅ PeerJS OPEN - My peer ID is:', idValue);
         setMyPeerId(idValue);
         await publishPeerId(idValue);
+        setChatError('');
       });
 
       peerRef.current.on('call', (call) => {
+        console.log('📞 Incoming call from:', call.peer);
         if (streamRef.current) {
+          console.log('Answering with stream...');
           call.answer(streamRef.current);
         } else {
-          // Answer without stream if no media available
+          console.log('⚠️ No stream available, answering without stream');
           call.answer();
         }
         call.on('stream', (remoteStream) => {
+          console.log('✅ Got remote stream from incoming call');
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = remoteStream;
           }
           setPeerConnected(true);
+          setCallStatus('active');
+        });
+        call.on('error', (error) => {
+          console.error('❌ Incoming call error:', error);
         });
       });
 
       peerRef.current.on('error', (error) => {
-        console.error('PeerJS error:', error);
-        setChatError('Video call connection failed. Please try again.');
+        console.error('❌ PeerJS error:', error);
+        setChatError('Video connection failed: ' + (error?.message || error?.type || 'Unknown error'));
+        setIsVideo(false);
+      });
+      
+      peerRef.current.on('disconnected', () => {
+        console.log('⚠️ PeerJS disconnected');
+        setChatError('Connection lost. Attempting to reconnect...');
+      });
+      
+      peerRef.current.on('close', () => {
+        console.log('Connection closed');
       });
     } catch (error) {
       console.error('Fatal error initializing video:', error);
