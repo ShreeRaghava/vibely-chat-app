@@ -14,13 +14,19 @@ export default function Matching() {
   const pollMatchStatus = useCallback((room: string) => {
     setSearching(true);
     setStatusMessage('Searching for a match...');
+    let pollCount = 0;
+    const maxPolls = 20; // 20 * 3 seconds = 60 seconds timeout
 
     const interval = setInterval(async () => {
+      pollCount++;
+      console.log(`Polling match status (attempt ${pollCount}/${maxPolls})`);
+      
       try {
         const res = await fetch(`/api/match/status?roomId=${room}`);
         const data = await res.json();
 
         if (data.matched) {
+          console.log('Match found!');
           setSearching(false);
           clearInterval(interval);
           router.push(`/room/${room}`);
@@ -29,6 +35,15 @@ export default function Matching() {
 
         if (data.notFound) {
           setStatusMessage('Still searching...');
+        }
+
+        // If polling for too long (60 seconds), force redirect to room anyway
+        if (pollCount >= maxPolls) {
+          console.log('Timeout reached, redirecting to room');
+          clearInterval(interval);
+          setSearching(false);
+          // Still go to room - user can try video call or wait for someone
+          router.push(`/room/${room}`);
         }
       } catch (error) {
         console.error('Match status error:', error);
