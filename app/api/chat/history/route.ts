@@ -11,9 +11,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
     }
 
-    const chat = await Chat.findOne({ roomId });
+    let chat = await Chat.findOne({ roomId });
+    
+    // If chat doesn't exist yet, create it
     if (!chat) {
-      return NextResponse.json({ error: 'Chat room not found' }, { status: 404 });
+      console.log('Chat room not found, creating new one:', roomId);
+      chat = await Chat.create({
+        roomId,
+        participants: [],
+        messages: [],
+        peerIds: [],
+      });
     }
 
     return NextResponse.json({
