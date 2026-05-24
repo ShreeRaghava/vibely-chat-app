@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Guest ID or login required' }, { status: 400 });
     }
 
-    console.log('Match request:', { currentUserId, guestId, chatType, gender, location });
+    console.log(`[MATCH] NEW REQUEST | User: ${currentUserId || 'NONE'} | Guest: ${guestId} | Type: ${chatType}`);
 
     // Check if this user/guest already has a pending match request
     const existingRequestFilter: any = { $or: [] };
@@ -39,25 +39,14 @@ export async function POST(request: Request) {
 
     const existingRequest = await MatchRequest.findOne(existingRequestFilter);
     if (existingRequest) {
-      console.log('Returning existing match request:', existingRequest.roomId);
+      console.log(`[MATCH] ✓ EXISTING REQUEST FOUND | Room: ${existingRequest.roomId}`);
       return NextResponse.json({ roomId: existingRequest.roomId, guestId: guestId || undefined });
     }
 
-    // Build the matching criteria
+    // Build the matching criteria - SIMPLE: just match by chatType
     let matchQuery: any = {
       chatType,
     };
-
-    // Location matching: if user has location, prefer same location; otherwise match any
-    if (location) {
-      matchQuery.location = location;
-    }
-
-    // Gender matching: if specified, match opposite gender; otherwise match any
-    if (gender) {
-      const oppositeGender = gender === 'male' ? 'female' : 'male';
-      matchQuery.gender = { $in: [oppositeGender, ''] };
-    }
 
     // Exclude self
     if (hasUser) {
@@ -67,15 +56,15 @@ export async function POST(request: Request) {
       matchQuery.guestId = { $ne: guestId };
     }
 
-    console.log('Looking for match with query:', JSON.stringify(matchQuery));
+    console.log(`[MATCH] SEARCHING | Query: ${JSON.stringify(matchQuery)}`);
 
-    // Try to find an exact match first
+    // Try to find a match
     const matchingRequest = await MatchRequest.findOne(matchQuery);
 
     if (matchingRequest) {
-      console.log('Found matching request:', matchingRequest.roomId);
-      
       const roomId = matchingRequest.roomId;
+      console.log(`[MATCH] ✓ FOUND MATCH | Using Room: ${roomId} | Waiting User: ${matchingRequest.user || matchingRequest.guestId}`);
+      
       const participants = [];
       if (hasUser) participants.push(currentUserId);
       if (hasGuest) participants.push(guestId);
@@ -83,60 +72,23 @@ export async function POST(request: Request) {
       if (matchingRequest.guestId) participants.push(matchingRequest.guestId);
 
       await Chat.create({
-        participants: [...new Set(participants)],
         roomId,
-        location: location || matchingRequest.location || '',
-        gender: gender || matchingRequest.gender || '',
+        participants: [...new Set(participants)],
+        messages: [],
+        peerIds: [],
       });
 
       await MatchRequest.deleteOne({ _id: matchingRequest._id });
-      console.log('Match complete! Room:', roomId);
+      console.log(`[MATCH] ✓ MATCH COMPLETE | Room: ${roomId} | Participants: ${participants.length}`);
       return NextResponse.json({ roomId, guestId: guestId || undefined });
     }
 
-    // If no exact match, try broader search (any gender/location)
-    const broaderQuery: any = {
-      chatType,
-      $nor: [],
-    };
-    
-    if (hasUser) {
-      broaderQuery.$nor.push({ user: currentUserId });
-    }
-    if (hasGuest) {
-      broaderQuery.$nor.push({ guestId });
-    }
-
-    const broaderMatch = await MatchRequest.findOne(broaderQuery);
-    
-    if (broaderMatch) {
-      console.log('Found broader match:', broaderMatch.roomId);
-      
-      const roomId = broaderMatch.roomId;
-      const participants = [];
-      if (hasUser) participants.push(currentUserId);
-      if (hasGuest) participants.push(guestId);
-      if (broaderMatch.user) participants.push(broaderMatch.user.toString());
-      if (broaderMatch.guestId) participants.push(broaderMatch.guestId);
-
-      await Chat.create({
-        participants: [...new Set(participants)],
-        roomId,
-        location: location || broaderMatch.location || '',
-        gender: gender || broaderMatch.gender || '',
-      });
-
-      await MatchRequest.deleteOne({ _id: broaderMatch._id });
-      console.log('Broader match complete! Room:', roomId);
-      return NextResponse.json({ roomId, guestId: guestId || undefined });
-    }
-
-    // No match found, create new match request
+    // No match found - create new match request with UNIQUE room
     const roomId = uuidv4();
-    console.log('No match found, creating new request:', roomId);
+    console.log(`[MATCH] ⏳ NO MATCH | Creating new request | Room: ${roomId} | User: ${currentUserId || guestId}`);
     
     await MatchRequest.create({
-      user: hasUser ? currentUserId : undefined,
+      user: hasUser ? currentUserId : null,
       guestId: guestId || '',
       roomId,
       chatType,
@@ -144,9 +96,10 @@ export async function POST(request: Request) {
       gender: gender || '',
     });
 
+    console.log(`[MATCH] ⏳ WAITING FOR MATCH | Room: ${roomId}`);
     return NextResponse.json({ roomId, guestId: guestId || undefined });
   } catch (error) {
-    console.error('Match error:', error);
-    return NextResponse.json({ error: 'Internal server error: ' + error }, { status: 500 });
+    console.error('[MATCH] ERROR:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -67,12 +67,13 @@ export default function ChatRoom() {
     try {
       const res = await fetch(`/api/chat/history?roomId=${encodeURIComponent(id)}`);
       if (!res.ok) {
-        console.warn('Chat history fetch failed:', res.status);
+        console.warn('[ROOM] Chat history fetch failed:', res.status);
         // Still show as connected even if no messages yet
         setRoomConnected(true);
         return;
       }
       const data = await res.json();
+      console.log(`[ROOM] Fetched ${data.messages?.length || 0} messages from DB | Room: ${id} | User: ${currentUserId}`);
       const formatted = (data.messages || []).map((msg: any) => ({
         text: msg.content,
         sender: msg.sender === currentUserId ? 'me' : 'them',
@@ -82,7 +83,7 @@ export default function ChatRoom() {
       setRoomConnected(true);
       setChatError(''); // Clear any previous errors
     } catch (error) {
-      console.error('Message load error:', error);
+      console.error('[ROOM] Message load error:', error);
       // Don't show error - just set as connected anyway
       setRoomConnected(true);
     }
@@ -447,6 +448,8 @@ export default function ChatRoom() {
       return;
     }
 
+    console.log(`[ROOM] SENDING MESSAGE | Room: ${id} | User: ${currentUserId} | Text: ${message}`);
+    
     setMessages((prev) => [
       ...prev,
       {
@@ -459,13 +462,21 @@ export default function ChatRoom() {
     setNewMessage('');
 
     try {
-      await fetch('/api/chat/send', {
+      const res = await fetch('/api/chat/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId: id, senderId: currentUserId, content: message }),
       });
+      
+      if (!res.ok) {
+        console.error(`[ROOM] Message send failed with status ${res.status}`);
+        setChatError('Failed to send message. Try again.');
+        return;
+      }
+      
+      console.log('[ROOM] ✓ Message sent successfully');
     } catch (error) {
-      console.error('Send message error:', error);
+      console.error('[ROOM] Send message error:', error);
       setChatError('Unable to send message. Please try again.');
     }
   };
@@ -474,7 +485,23 @@ export default function ChatRoom() {
     alert('User reported');
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // Cancel current match before searching for new one
+    if (id) {
+      try {
+        await fetch('/api/match/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: id }),
+        });
+        console.log('[ROOM] ✓ Match cancelled, searching for new match');
+      } catch (error) {
+        console.error('[ROOM] Error cancelling match:', error);
+      }
+    }
+    
+    // Clear messages and redirect to find new match
+    setMessages([]);
     router.push('/matching');
   };
 
@@ -500,8 +527,9 @@ export default function ChatRoom() {
               <h1 className="text-2xl font-semibold">Chat & Video</h1>
             </div>
             <div className="flex flex-wrap gap-2 text-sm text-slate-600">
-              <span className="rounded-full bg-slate-100 px-3 py-1">Room ID: {id}</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">Mode: {isVideo ? 'Video call' : 'Text chat'}</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">Room: {id?.slice(0, 8)}</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">User: {currentUserId?.slice(0, 8)}</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1">Mode: {isVideo ? 'Video' : 'Text'}</span>
               {callStatus !== 'idle' && (
                 <span className={`rounded-full px-3 py-1 text-white ${callStatus === 'calling' ? 'bg-yellow-500' : callStatus === 'active' ? 'bg-green-500' : 'bg-slate-500'}`}>
                   {callStatus === 'calling' ? 'Calling...' : callStatus === 'active' ? 'Connected' : 'Declined'}
