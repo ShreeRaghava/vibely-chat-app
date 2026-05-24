@@ -18,7 +18,7 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
     setError('');
     setIsRetrying(true);
     
-    console.log('Requesting camera and microphone access...');
+    console.log('[PERMISSIONS] Requesting camera and microphone access...');
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -33,12 +33,12 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
         audio: true,
       });
 
-      console.log('✅ Got camera and microphone access!');
+      console.log('[PERMISSIONS] ✅ Got camera and microphone access!');
       
       const hasVideo = stream.getVideoTracks().length > 0;
       const hasAudio = stream.getAudioTracks().length > 0;
       
-      console.log('Video tracks:', hasVideo, 'Audio tracks:', hasAudio);
+      console.log('[PERMISSIONS] Video tracks:', hasVideo, 'Audio tracks:', hasAudio);
       
       // Stop the test stream immediately (we'll get a fresh one in video call)
       stream.getTracks().forEach((track) => {
@@ -56,9 +56,9 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
         location: null  // Location removed entirely
       });
       
-      console.log('Permissions ready - starting video call');
+      console.log('[PERMISSIONS] ✓ Permissions ready - starting video call');
     } catch (err: any) {
-      console.error('❌ Permission error:', {
+      console.error('[PERMISSIONS] ❌ Error:', {
         name: err.name,
         message: err.message,
       });
@@ -66,17 +66,17 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
       let errorMsg = '';
 
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMsg = 'Permission denied. Click ALLOW when browser asks for Camera and Microphone. Try again.';
+        errorMsg = '❌ Permission was denied. \n\n1. Look for the permission popup from your browser\n2. Click ALLOW for both camera AND microphone\n3. If you don\'t see a popup, check your browser settings:\n   - Chrome/Edge: Settings → Privacy → Site settings → Camera/Microphone → Allow\n   - Firefox: about:preferences → Privacy → Permissions\n4. Then try again!';
       } else if (err.name === 'NotFoundError') {
-        errorMsg = 'No camera or microphone found. Please connect a camera/microphone.';
+        errorMsg = '❌ No camera or microphone found. Please connect a camera/microphone to your device.';
       } else if (err.name === 'NotReadableError') {
-        errorMsg = 'Camera/microphone in use by another app. Close other apps and try again.';
+        errorMsg = '❌ Camera/microphone is being used by another app. Please:\n1. Close all other apps using camera/mic (Zoom, Skype, etc.)\n2. Try again';
       } else if (err.name === 'SecurityError') {
-        errorMsg = 'Requires HTTPS. Use secure connection.';
+        errorMsg = '❌ Security error. This app requires HTTPS. Make sure you\'re using a secure connection.';
       } else if (err.name === 'AbortError') {
-        errorMsg = 'Permission request cancelled. Try again.';
+        errorMsg = '❌ Permission request was cancelled. Please try again.';
       } else {
-        errorMsg = `Error: ${err.message || 'Unknown error'}. Try again.`;
+        errorMsg = `❌ Error: ${err.message || 'Unknown error'}. Please try again or use Text Chat Only.`;
       }
 
       setError(errorMsg);
@@ -117,8 +117,8 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-100 text-red-700 text-sm rounded-2xl border border-red-300">
-                <strong>❌ {error}</strong>
+              <div className="mb-6 p-4 bg-red-100 text-red-700 text-sm rounded-2xl border border-red-300 whitespace-pre-line">
+                <strong>{error}</strong>
               </div>
             )}
 

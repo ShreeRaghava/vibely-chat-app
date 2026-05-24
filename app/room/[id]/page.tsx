@@ -90,10 +90,14 @@ export default function ChatRoom() {
   }, [id, currentUserId]);
 
   useEffect(() => {
+    // Clear messages when entering a new room
+    setMessages([]);
+    console.log(`[ROOM] Entered new room: ${id}`);
+    
     fetchMessages();
     const interval = setInterval(fetchMessages, 2500);
     return () => clearInterval(interval);
-  }, [fetchMessages]);
+  }, [id, fetchMessages]);
 
   // Poll for incoming calls
   useEffect(() => {
@@ -486,6 +490,16 @@ export default function ChatRoom() {
   };
 
   const handleNext = async () => {
+    // Stop video call if active
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+    
     // Cancel current match before searching for new one
     if (id) {
       try {
@@ -505,7 +519,30 @@ export default function ChatRoom() {
     router.push('/matching');
   };
 
-  const handleEnd = () => {
+  const handleEnd = async () => {
+    // Stop video call if active
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+    
+    // Cancel match
+    if (id) {
+      try {
+        await fetch('/api/match/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: id }),
+        });
+      } catch (error) {
+        console.error('[ROOM] Error cancelling match:', error);
+      }
+    }
+    
     router.push('/lobby');
   };
 
