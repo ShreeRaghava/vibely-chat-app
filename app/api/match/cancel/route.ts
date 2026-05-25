@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import MatchRequest from '@/lib/models/MatchRequest';
+import MatchQueue from '@/lib/models/MatchQueue';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
     }
 
-    await MatchRequest.deleteOne({ roomId });
+    const result = await MatchQueue.deleteOne({ roomId });
+    console.log(`[MATCH-CANCEL] Cancelled room: ${roomId}`);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Match cancel error:', error);

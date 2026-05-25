@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Chat from '@/lib/models/Chat';
-import MatchRequest from '@/lib/models/MatchRequest';
+import MatchQueue from '@/lib/models/MatchQueue';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,16 +12,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
     }
 
+    // Check if chat exists (match happened)
     const chat = await Chat.findOne({ roomId });
     if (chat) {
+      console.log(`[MATCH-STATUS] ✓ Match found for room ${roomId}`);
       return NextResponse.json({ matched: true, roomId });
     }
 
-    const requestEntry = await MatchRequest.findOne({ roomId });
-    if (requestEntry) {
+    // Check if still in queue (waiting)
+    const queueEntry = await MatchQueue.findOne({ roomId });
+    if (queueEntry) {
+      console.log(`[MATCH-STATUS] ⏳ Still waiting for match on room ${roomId}`);
       return NextResponse.json({ matched: false, roomId });
     }
 
+    console.log(`[MATCH-STATUS] ❌ Room not found: ${roomId}`);
     return NextResponse.json({ matched: false, notFound: true });
   } catch (error) {
     console.error('Match status error:', error);
