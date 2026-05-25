@@ -9,6 +9,9 @@ export default function Lobby() {
   const [genderFilter, setGenderFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const router = useRouter();
+  
+  // Version: 2025-05-25-v3 - Force cache clear
+  console.log('[VERSION] Lobby page loaded - v3')
 
   const handleStart = () => {
     const queryParams = new URLSearchParams({
