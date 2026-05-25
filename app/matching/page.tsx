@@ -49,7 +49,7 @@ export default function Matching() {
         console.error('Match status error:', error);
         setStatusMessage('Still searching...');
       }
-    }, 3000);
+    }, 1500); // Check every 1.5 seconds instead of 3
 
     return () => clearInterval(interval);
   }, [router]);

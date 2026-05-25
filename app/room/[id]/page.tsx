@@ -94,8 +94,11 @@ export default function ChatRoom() {
     setMessages([]);
     console.log(`[ROOM] Entered new room: ${id}`);
     
+    // Fetch immediately
     fetchMessages();
-    const interval = setInterval(fetchMessages, 2500);
+    
+    // Then poll more aggressively for real-time updates (1 second)
+    const interval = setInterval(fetchMessages, 1000);
     return () => clearInterval(interval);
   }, [id, fetchMessages]);
 
