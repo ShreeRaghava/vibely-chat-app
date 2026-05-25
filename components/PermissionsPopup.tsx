@@ -22,11 +22,13 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setError('Your browser does not support camera/microphone. Please use Chrome, Firefox, Safari, or Edge.');
+        setError('❌ Your browser does not support camera/microphone.\n\nPlease use:\n• Chrome\n• Firefox\n• Safari\n• Edge');
         setIsRetrying(false);
         return;
       }
 
+      console.log('[PERMISSIONS] Calling getUserMedia()...');
+      
       // Request BOTH camera and microphone together
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user' },
@@ -53,7 +55,7 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
       onComplete({ 
         camera: hasVideo, 
         microphone: hasAudio,
-        location: null  // Location removed entirely
+        location: null
       });
       
       console.log('[PERMISSIONS] ✓ Permissions ready - starting video call');
@@ -61,22 +63,23 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
       console.error('[PERMISSIONS] ❌ Error:', {
         name: err.name,
         message: err.message,
+        code: err.code,
       });
 
       let errorMsg = '';
 
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMsg = '❌ Permission was denied. \n\n1. Look for the permission popup from your browser\n2. Click ALLOW for both camera AND microphone\n3. If you don\'t see a popup, check your browser settings:\n   - Chrome/Edge: Settings → Privacy → Site settings → Camera/Microphone → Allow\n   - Firefox: about:preferences → Privacy → Permissions\n4. Then try again!';
+        errorMsg = `❌ BROWSER PERMISSION DENIED\n\nThe browser blocked access. This is NOT an app error - it's your browser settings.\n\n**FIX:**\n• Chrome: Address bar → 📷 Camera icon → "Always allow" or "Allow"\n• Firefox: Settings → Privacy → Permissions → Camera & Microphone → "Allow"\n• Safari: System Preferences → Security → Camera/Microphone\n• Edge: Settings → Privacy → Camera & Microphone → "Allow"\n\nThen try again.`;
       } else if (err.name === 'NotFoundError') {
-        errorMsg = '❌ No camera or microphone found. Please connect a camera/microphone to your device.';
+        errorMsg = '❌ No camera or microphone found\n\nPlease connect a camera and microphone to your device.';
       } else if (err.name === 'NotReadableError') {
-        errorMsg = '❌ Camera/microphone is being used by another app. Please:\n1. Close all other apps using camera/mic (Zoom, Skype, etc.)\n2. Try again';
+        errorMsg = '❌ Camera/microphone is BUSY\n\nAnother app is using it (Zoom, Skype, Discord, etc.)\n\nClose other apps and try again.';
       } else if (err.name === 'SecurityError') {
-        errorMsg = '❌ Security error. This app requires HTTPS. Make sure you\'re using a secure connection.';
+        errorMsg = '❌ HTTPS Required\n\nThis must run on a secure connection (HTTPS), not HTTP.';
       } else if (err.name === 'AbortError') {
-        errorMsg = '❌ Permission request was cancelled. Please try again.';
+        errorMsg = '❌ Permission request cancelled\n\nYou cancelled the browser permission popup. Try again.';
       } else {
-        errorMsg = `❌ Error: ${err.message || 'Unknown error'}. Please try again or use Text Chat Only.`;
+        errorMsg = `❌ Error: ${err.message || 'Unknown error'}\n\nTry clicking "Retry" below.`;
       }
 
       setError(errorMsg);
@@ -117,8 +120,8 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-100 text-red-700 text-sm rounded-2xl border border-red-300 whitespace-pre-line">
-                <strong>{error}</strong>
+              <div className="mb-6 p-4 bg-red-100 text-red-700 text-xs rounded-2xl border border-red-300 whitespace-pre-line max-h-64 overflow-y-auto">
+                {error}
               </div>
             )}
 
@@ -128,7 +131,7 @@ export default function PermissionsPopup({ isOpen, onComplete }: PermissionsPopu
                 disabled={isRetrying}
                 className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isRetrying ? '⏳ Requesting...' : '✅ Allow Camera & Mic'}
+                {isRetrying ? '⏳ Connecting...' : error ? '🔄 Try Again' : '✅ Allow Camera & Mic'}
               </button>
 
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl text-sm text-blue-900">
